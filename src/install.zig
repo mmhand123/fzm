@@ -61,14 +61,6 @@ pub const VersionInfo = struct {
     @"arm-netbsd": ?Artifact = null,
     @"x86-netbsd": ?Artifact = null,
     @"x86_64-netbsd": ?Artifact = null,
-
-    const json_options: std.json.ParseOptions = .{
-        .ignore_unknown_fields = true,
-    };
-
-    pub fn parse(allocator: std.mem.Allocator, source: []const u8) !std.json.Parsed(@This()) {
-        return std.json.parseFromSlice(@This(), allocator, source, json_options);
-    }
 };
 
 const InstallError = error{
@@ -135,7 +127,9 @@ fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) InstallEr
     const version_value = root.object.get(version) orelse return error.VersionNotFound;
 
     // Parse the version-specific Value into our typed struct
-    return std.json.parseFromValue(VersionInfo, allocator, version_value, VersionInfo.json_options) catch return error.JsonParseFailed;
+    return std.json.parseFromValue(VersionInfo, allocator, version_value, .{
+        .ignore_unknown_fields = true,
+    }) catch return error.JsonParseFailed;
 }
 
 pub fn install(allocator: std.mem.Allocator, version: []const u8) void {
