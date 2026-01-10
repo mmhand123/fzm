@@ -1,17 +1,8 @@
-//! Zig version installation and management.
-//!
-//! Handles downloading and installing Zig versions from the official CDN.
-//! Supports both release versions (semver format) and master builds.
-
 const std = @import("std");
-const dirs = @import("dirs.zig");
-const errors = @import("errors.zig");
+const installErrors = @import("install_errors.zig");
+
 const http = std.http;
-const Uri = std.Uri;
-
-const log = std.log.scoped(.install);
-
-const CDN_INDEX_URL = "https://ziglang.org/download/index.json";
+const VERSION_INDEX_URL = "https://ziglang.org/download/index.json";
 
 /// Download artifact info (tarball URL, checksum, size).
 pub const Artifact = struct {
@@ -63,22 +54,11 @@ pub const VersionInfo = struct {
     @"x86_64-netbsd": ?Artifact = null,
 };
 
-const InstallError = error{
-    /// Version string is not "master" or valid semver (x.x.x)
-    InvalidVersion,
-    /// Version does not exist on the Zig CDN
-    VersionNotFound,
-    /// HTTP request failed or returned non-success status
-    HttpRequestFailed,
-    /// Failed to parse CDN response as JSON
-    JsonParseFailed,
-};
-
 /// Validates that a version string is either "master" or valid semver (x.x.x).
 ///
 /// Semver must be exactly three numeric components separated by dots.
 /// Examples: "0.15.2", "1.0.0", "master"
-fn validateVersion(version: []const u8) InstallError!void {
+pub fn validateVersion(version: []const u8) installErrors.InstallError!void {
     if (std.mem.eql(u8, version, "master")) return;
 
     var dot_count: usize = 0;
@@ -101,12 +81,12 @@ fn validateVersion(version: []const u8) InstallError!void {
 }
 
 /// Fetches the Zig CDN index and returns the version info for the specified version.
-fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) InstallError!std.json.Parsed(VersionInfo) {
+pub fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) installErrors.InstallError!std.json.Parsed(VersionInfo) {
     var client: http.Client = .{ .allocator = allocator };
 
     var response_body = std.io.Writer.Allocating.init(allocator);
     const result = client.fetch(.{
-        .location = .{ .url = CDN_INDEX_URL },
+        .location = .{ .url = VERSION_INDEX_URL },
         .response_writer = &response_body.writer,
     }) catch return error.HttpRequestFailed;
 
@@ -130,54 +110,6 @@ fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) InstallEr
     return std.json.parseFromValue(VersionInfo, allocator, version_value, .{
         .ignore_unknown_fields = true,
     }) catch return error.JsonParseFailed;
-}
-
-pub fn install(allocator: std.mem.Allocator, version: []const u8) void {
-    validateVersion(version) catch |err| {
-        return printInstallError(err, version);
-    };
-
-    const version_info = fetchVersionInfo(allocator, version) catch |err| {
-        return printInstallError(err, version);
-    };
-    defer version_info.deinit();
-
-    const data_dir = dirs.getDataDir(allocator) catch {
-        return errors.prettyError("error: failed to get data directory\n", .{}) catch {};
-    };
-
-    log.debug("version_info: {f}", .{std.json.fmt(version_info.value, .{ .whitespace = .indent_2 })});
-
-    std.debug.print("installing {s}\n", .{version});
-    std.debug.print("exe_dir: {s}\n", .{data_dir});
-    if (version_info.value.version) |v| {
-        std.debug.print("full version: {s}\n", .{v});
-    }
-}
-
-fn printInstallError(err: InstallError, version: []const u8) void {
-    var buf: [4096]u8 = undefined;
-    var stderr = std.fs.File.stderr().writer(&buf);
-    defer stderr.interface.flush() catch {};
-
-    switch (err) {
-        error.InvalidVersion => errors.prettyError(
-            "error: invalid version \"{s}\" - must be \"master\" or semver (e.g., 0.15.2)\n",
-            .{version},
-        ) catch {},
-        error.VersionNotFound => errors.prettyError(
-            "error: version \"{s}\" not found on Zig download server\n",
-            .{version},
-        ) catch {},
-        error.HttpRequestFailed => errors.prettyError(
-            "error: failed to connect to Zig download server\n",
-            .{},
-        ) catch {},
-        error.JsonParseFailed => errors.prettyError(
-            "error: failed to parse response from Zig download server\n",
-            .{},
-        ) catch {},
-    }
 }
 
 test "validateVersion accepts master" {
@@ -204,7 +136,7 @@ test "validateVersion rejects invalid input" {
     try expectError(error.InvalidVersion, validateVersion(""));
 
     // Extra components
-    try expectError(error.InvalidVersion, validateVersion("0.15.2.1"));
+    try expectError(error.HttpRequestFailed, validateVersion("0.15.2.1"));
 
     // Prefix/suffix
     try expectError(error.InvalidVersion, validateVersion("v0.15.2"));

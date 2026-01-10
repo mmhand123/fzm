@@ -1,8 +1,12 @@
 const std = @import("std");
 const clap = @import("clap");
-const installation = @import("install.zig");
+const installation = @import("./install/install.zig");
 
 const VERSION = "0.0.1";
+
+test {
+    _ = @import("install/version.zig");
+}
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
