@@ -1,5 +1,6 @@
 const std = @import("std");
 
+/// Prints a pretty error message to stderr.
 pub fn prettyError(comptime fmt: []const u8, args: anytype) !void {
     var buf: [4096]u8 = undefined;
     const file = std.fs.File.stderr();
