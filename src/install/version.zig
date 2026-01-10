@@ -136,7 +136,7 @@ test "validateVersion rejects invalid input" {
     try expectError(error.InvalidVersion, validateVersion(""));
 
     // Extra components
-    try expectError(error.HttpRequestFailed, validateVersion("0.15.2.1"));
+    try expectError(error.InvalidVersion, validateVersion("0.15.2.1"));
 
     // Prefix/suffix
     try expectError(error.InvalidVersion, validateVersion("v0.15.2"));
