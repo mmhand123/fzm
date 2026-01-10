@@ -8,16 +8,16 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{.{ .name = "clap", .module = b.dependency("clap", .{
-            .target = target,
-            .optimize = optimize,
-        }).module("clap") }},
     });
+
+    const clap = b.dependency("clap", .{}).module("clap");
 
     const exe = b.addExecutable(.{
         .name = "fzm",
         .root_module = mainMod,
     });
+
+    exe.root_module.addImport("clap", clap);
 
     b.installArtifact(exe);
 
