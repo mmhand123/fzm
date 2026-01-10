@@ -9,7 +9,67 @@ const errors = @import("errors.zig");
 const http = std.http;
 const Uri = std.Uri;
 
+const log = std.log.scoped(.install);
+
 const CDN_INDEX_URL = "https://ziglang.org/download/index.json";
+
+/// Download artifact info (tarball URL, checksum, size).
+pub const Artifact = struct {
+    tarball: []const u8,
+    shasum: []const u8,
+    size: []const u8,
+};
+
+/// Version metadata from the Zig CDN index.
+pub const VersionInfo = struct {
+    /// Full version string (e.g., "0.16.0-dev.2135+7c0b42ba0" for master)
+    version: ?[]const u8 = null,
+    /// Release date (e.g., "2026-01-09")
+    date: ?[]const u8 = null,
+    /// Documentation URL
+    docs: ?[]const u8 = null,
+    /// Standard library documentation URL
+    stdDocs: ?[]const u8 = null,
+    /// Release notes URL (only present for some versions)
+    notes: ?[]const u8 = null,
+    /// Source tarball
+    src: ?Artifact = null,
+    /// Bootstrap tarball
+    bootstrap: ?Artifact = null,
+
+    // Platform-specific artifacts
+    @"x86_64-linux": ?Artifact = null,
+    @"aarch64-linux": ?Artifact = null,
+    @"arm-linux": ?Artifact = null,
+    @"riscv64-linux": ?Artifact = null,
+    @"powerpc64le-linux": ?Artifact = null,
+    @"x86-linux": ?Artifact = null,
+    @"loongarch64-linux": ?Artifact = null,
+    @"s390x-linux": ?Artifact = null,
+    @"x86_64-macos": ?Artifact = null,
+    @"aarch64-macos": ?Artifact = null,
+    @"x86_64-windows": ?Artifact = null,
+    @"aarch64-windows": ?Artifact = null,
+    @"x86-windows": ?Artifact = null,
+    @"x86_64-freebsd": ?Artifact = null,
+    @"aarch64-freebsd": ?Artifact = null,
+    @"arm-freebsd": ?Artifact = null,
+    @"powerpc64-freebsd": ?Artifact = null,
+    @"powerpc64le-freebsd": ?Artifact = null,
+    @"riscv64-freebsd": ?Artifact = null,
+    @"aarch64-netbsd": ?Artifact = null,
+    @"arm-netbsd": ?Artifact = null,
+    @"x86-netbsd": ?Artifact = null,
+    @"x86_64-netbsd": ?Artifact = null,
+
+    const json_options: std.json.ParseOptions = .{
+        .ignore_unknown_fields = true,
+    };
+
+    pub fn parse(allocator: std.mem.Allocator, source: []const u8) !std.json.Parsed(@This()) {
+        return std.json.parseFromSlice(@This(), allocator, source, json_options);
+    }
+};
 
 const InstallError = error{
     /// Version string is not "master" or valid semver (x.x.x)
@@ -48,9 +108,8 @@ fn validateVersion(version: []const u8) InstallError!void {
     if (dot_count != 2 or last_was_dot) return error.InvalidVersion;
 }
 
-/// Checks that a version exists on the Zig CDN by fetching the index.json
-/// and verifying the version key is present.
-fn checkVersionExists(allocator: std.mem.Allocator, version: []const u8) InstallError!void {
+/// Fetches the Zig CDN index and returns the version info for the specified version.
+fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) InstallError!std.json.Parsed(VersionInfo) {
     var client: http.Client = .{ .allocator = allocator };
 
     var response_body = std.io.Writer.Allocating.init(allocator);
@@ -61,20 +120,22 @@ fn checkVersionExists(allocator: std.mem.Allocator, version: []const u8) Install
 
     if (result.status != .ok) return error.HttpRequestFailed;
 
-    const parsed = std.json.parseFromSlice(
+    // Parse as generic JSON to extract the version-specific object
+    const index = std.json.parseFromSlice(
         std.json.Value,
         allocator,
         response_body.written(),
         .{},
     ) catch return error.JsonParseFailed;
+    defer index.deinit();
 
-    // Check if version key exists in the top-level object
-    const root = parsed.value;
+    const root = index.value;
     if (root != .object) return error.JsonParseFailed;
 
-    if (!root.object.contains(version)) {
-        return error.VersionNotFound;
-    }
+    const version_value = root.object.get(version) orelse return error.VersionNotFound;
+
+    // Parse the version-specific Value into our typed struct
+    return std.json.parseFromValue(VersionInfo, allocator, version_value, VersionInfo.json_options) catch return error.JsonParseFailed;
 }
 
 pub fn install(allocator: std.mem.Allocator, version: []const u8) void {
@@ -82,16 +143,22 @@ pub fn install(allocator: std.mem.Allocator, version: []const u8) void {
         return printInstallError(err, version);
     };
 
-    checkVersionExists(allocator, version) catch |err| {
+    const version_info = fetchVersionInfo(allocator, version) catch |err| {
         return printInstallError(err, version);
     };
+    defer version_info.deinit();
 
     const data_dir = dirs.getDataDir(allocator) catch {
         return errors.prettyError("error: failed to get data directory\n", .{}) catch {};
     };
 
+    log.debug("version_info: {f}", .{std.json.fmt(version_info.value, .{ .whitespace = .indent_2 })});
+
     std.debug.print("installing {s}\n", .{version});
     std.debug.print("exe_dir: {s}\n", .{data_dir});
+    if (version_info.value.version) |v| {
+        std.debug.print("full version: {s}\n", .{v});
+    }
 }
 
 fn printInstallError(err: InstallError, version: []const u8) void {
