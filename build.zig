@@ -4,17 +4,28 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const mainMod = b.createModule(.{
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{},
+    });
+
     const exe = b.addExecutable(.{
         .name = "fzm",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{},
-        }),
+        .root_module = mainMod,
     });
 
     b.installArtifact(exe);
+
+    const exe_check = b.addExecutable(.{
+        .name = "check",
+        .root_module = mainMod,
+    });
+
+    const check = b.step("check", "Check if the module compiles, used in ZLS");
+
+    check.dependOn(&exe_check.step);
 
     const run_step = b.step("run", "Run the app");
 
