@@ -8,7 +8,10 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{},
+        .imports = &.{.{ .name = "clap", .module = b.dependency("clap", .{
+            .target = target,
+            .optimize = optimize,
+        }).module("clap") }},
     });
 
     const exe = b.addExecutable(.{
