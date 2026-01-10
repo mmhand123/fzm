@@ -1,8 +1,15 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const clap = @import("clap");
 const installation = @import("./install/install.zig");
+const logging = @import("./logging.zig");
 
 const VERSION = "0.0.1";
+
+pub const std_options: std.Options = .{
+    .log_level = .debug,
+    .logFn = logging.logFn,
+};
 
 test {
     _ = @import("install/version.zig");
@@ -11,6 +18,8 @@ test {
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
+
+    try logging.setLogLevel();
 
     const allocator = arena.allocator();
 

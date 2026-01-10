@@ -40,9 +40,9 @@ pub fn install(allocator: std.mem.Allocator, target_version: []const u8) void {
 
     log.debug("version_info: {f}", .{std.json.fmt(version_info.value, .{ .whitespace = .indent_2 })});
 
-    std.debug.print("installing {s}\n", .{target_version});
-    std.debug.print("exe_dir: {s}\n", .{data_dir});
+    log.debug("installing {s}", .{target_version});
+    log.debug("exe_dir: {s}", .{data_dir});
     if (version_info.value.version) |v| {
-        std.debug.print("full version: {s}\n", .{v});
+        log.debug("full version: {s}", .{v});
     }
 }
