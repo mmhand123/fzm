@@ -1,5 +1,6 @@
 const std = @import("std");
 const installErrors = @import("install_errors.zig");
+const InstallError = installErrors.InstallError;
 
 const http = std.http;
 const VERSION_INDEX_URL = "https://ziglang.org/download/index.json";
@@ -58,7 +59,7 @@ pub const VersionInfo = struct {
 ///
 /// Semver must be exactly three numeric components separated by dots.
 /// Examples: "0.15.2", "1.0.0", "master"
-pub fn validateVersion(version: []const u8) installErrors.InstallError!void {
+pub fn validateVersion(version: []const u8) InstallError!void {
     if (std.mem.eql(u8, version, "master")) return;
 
     var dot_count: usize = 0;
@@ -66,7 +67,7 @@ pub fn validateVersion(version: []const u8) installErrors.InstallError!void {
 
     for (version) |c| {
         if (c == '.') {
-            if (last_was_dot) return error.InvalidVersion; // Consecutive or leading dot
+            if (last_was_dot) return InstallError.InvalidVersion; // Consecutive or leading dot
             dot_count += 1;
             last_was_dot = true;
         } else if (std.ascii.isDigit(c)) {
@@ -77,20 +78,20 @@ pub fn validateVersion(version: []const u8) installErrors.InstallError!void {
     }
 
     // Must have exactly 2 dots and not end with a dot
-    if (dot_count != 2 or last_was_dot) return error.InvalidVersion;
+    if (dot_count != 2 or last_was_dot) return InstallError.InvalidVersion;
 }
 
 /// Fetches the Zig CDN index and returns the version info for the specified version.
-pub fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) installErrors.InstallError!std.json.Parsed(VersionInfo) {
+pub fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) InstallError!std.json.Parsed(VersionInfo) {
     var client: http.Client = .{ .allocator = allocator };
 
     var response_body = std.io.Writer.Allocating.init(allocator);
     const result = client.fetch(.{
         .location = .{ .url = VERSION_INDEX_URL },
         .response_writer = &response_body.writer,
-    }) catch return error.HttpRequestFailed;
+    }) catch return InstallError.HttpRequestFailed;
 
-    if (result.status != .ok) return error.HttpRequestFailed;
+    if (result.status != .ok) return InstallError.HttpRequestFailed;
 
     // Parse as generic JSON to extract the version-specific object
     const index = std.json.parseFromSlice(
@@ -98,18 +99,18 @@ pub fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) insta
         allocator,
         response_body.written(),
         .{},
-    ) catch return error.JsonParseFailed;
+    ) catch return InstallError.JsonParseFailed;
     defer index.deinit();
 
     const root = index.value;
-    if (root != .object) return error.JsonParseFailed;
+    if (root != .object) return InstallError.JsonParseFailed;
 
-    const version_value = root.object.get(version) orelse return error.VersionNotFound;
+    const version_value = root.object.get(version) orelse return InstallError.VersionNotFound;
 
     // Parse the version-specific Value into our typed struct
     return std.json.parseFromValue(VersionInfo, allocator, version_value, .{
         .ignore_unknown_fields = true,
-    }) catch return error.JsonParseFailed;
+    }) catch return InstallError.JsonParseFailed;
 }
 
 test "validateVersion accepts master" {
@@ -127,28 +128,28 @@ test "validateVersion rejects invalid input" {
     const expectError = std.testing.expectError;
 
     // Wrong keywords
-    try expectError(error.InvalidVersion, validateVersion("latest"));
-    try expectError(error.InvalidVersion, validateVersion("stable"));
+    try expectError(InstallError.InvalidVersion, validateVersion("latest"));
+    try expectError(InstallError.InvalidVersion, validateVersion("stable"));
 
     // Missing components
-    try expectError(error.InvalidVersion, validateVersion("0.15"));
-    try expectError(error.InvalidVersion, validateVersion("0"));
-    try expectError(error.InvalidVersion, validateVersion(""));
+    try expectError(InstallError.InvalidVersion, validateVersion("0.15"));
+    try expectError(InstallError.InvalidVersion, validateVersion("0"));
+    try expectError(InstallError.InvalidVersion, validateVersion(""));
 
     // Extra components
-    try expectError(error.InvalidVersion, validateVersion("0.15.2.1"));
+    try expectError(InstallError.InvalidVersion, validateVersion("0.15.2.1"));
 
     // Prefix/suffix
-    try expectError(error.InvalidVersion, validateVersion("v0.15.2"));
-    try expectError(error.InvalidVersion, validateVersion("0.15.2-dev"));
-    try expectError(error.InvalidVersion, validateVersion("0.15.2+abc"));
+    try expectError(InstallError.InvalidVersion, validateVersion("v0.15.2"));
+    try expectError(InstallError.InvalidVersion, validateVersion("0.15.2-dev"));
+    try expectError(InstallError.InvalidVersion, validateVersion("0.15.2+abc"));
 
     // Invalid characters
-    try expectError(error.InvalidVersion, validateVersion("0.15.x"));
-    try expectError(error.InvalidVersion, validateVersion("a.b.c"));
+    try expectError(InstallError.InvalidVersion, validateVersion("0.15.x"));
+    try expectError(InstallError.InvalidVersion, validateVersion("a.b.c"));
 
     // Malformed dots
-    try expectError(error.InvalidVersion, validateVersion(".0.15.2"));
-    try expectError(error.InvalidVersion, validateVersion("0.15.2."));
-    try expectError(error.InvalidVersion, validateVersion("0..15.2"));
+    try expectError(InstallError.InvalidVersion, validateVersion(".0.15.2"));
+    try expectError(InstallError.InvalidVersion, validateVersion("0.15.2."));
+    try expectError(InstallError.InvalidVersion, validateVersion("0..15.2"));
 }
