@@ -94,6 +94,8 @@ const foo = Type{ .field = value };     // Avoid
 
 **Tests:** Inline in the same file, register in src/main.zig test block
 
+**Allocations**: We're using an arena allocator (the builtin zig one), so we do _not_ need to worry about freeing memory, except at the end of the program.
+
 ## Safety Conventions
 
 Inspired by [TigerStyle](https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md).
