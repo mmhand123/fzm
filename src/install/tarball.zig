@@ -35,7 +35,6 @@ pub fn downloadTarball(allocator: std.mem.Allocator, version_info: version.Versi
         .alloc = allocator,
         .response_storage = std.io.Writer.Allocating.init(allocator),
     };
-    defer fetcher.response_storage.deinit();
 
     return downloadTarballWithFetch(artifact, cache_dir, &fetcher);
 }
