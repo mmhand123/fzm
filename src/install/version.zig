@@ -100,7 +100,6 @@ pub fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) Insta
         response_body.written(),
         .{},
     ) catch return InstallError.JsonParseFailed;
-    defer index.deinit();
 
     const root = index.value;
     if (root != .object) return InstallError.JsonParseFailed;

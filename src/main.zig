@@ -39,10 +39,11 @@ pub fn main() !void {
     } else if (res.args.version != 0) {
         std.debug.print("fzm v{s}\n", .{VERSION});
     } else if (res.args.install) |version| {
-        installation.install(allocator, version);
+        try installation.install(allocator, version);
     }
 }
 
 test {
     _ = @import("install/version.zig");
+    _ = @import("install/install.zig");
 }
