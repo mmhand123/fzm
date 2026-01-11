@@ -23,8 +23,6 @@ pub fn downloadTarball(allocator: std.mem.Allocator, version_info: version.Versi
         return error.ArtifactNotFound;
     };
 
-    log.debug("artifact: {f}", .{std.json.fmt(artifact, .{ .whitespace = .indent_2 })});
-
     std.fs.makeDirAbsolute(cache_dir_path) catch |err| switch (err) {
         error.PathAlreadyExists => {},
         else => return err,
@@ -47,6 +45,7 @@ fn downloadTarballWithFetch(
     cache_dir: std.fs.Dir,
     fetcher: anytype,
 ) InstallError!void {
+    log.debug("downloading artifact: {f}", .{std.json.fmt(artifact, .{ .whitespace = .indent_2 })});
     const result = fetcher.fetch(artifact.tarball) catch return InstallError.HttpRequestFailed;
     if (result.status != .ok) return InstallError.ArtifactDownloadFailed;
 
