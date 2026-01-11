@@ -11,10 +11,6 @@ pub const std_options: std.Options = .{
     .logFn = logging.logFn,
 };
 
-test {
-    _ = @import("install/version.zig");
-}
-
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -45,4 +41,8 @@ pub fn main() !void {
     } else if (res.args.install) |version| {
         installation.install(allocator, version);
     }
+}
+
+test {
+    _ = @import("install/version.zig");
 }
