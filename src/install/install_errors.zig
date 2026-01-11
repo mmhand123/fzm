@@ -10,6 +10,10 @@ pub const InstallError = error{
     HttpRequestFailed,
     /// Failed to parse CDN response as JSON
     JsonParseFailed,
+    /// Failed to download the tarball
+    ArtifactDownloadFailed,
+    /// Failed to write tarball to cache directory
+    TarballWriteFailed,
 };
 
 pub fn printInstallError(err: InstallError, version: []const u8) void {
@@ -32,6 +36,14 @@ pub fn printInstallError(err: InstallError, version: []const u8) void {
         ) catch {},
         InstallError.JsonParseFailed => errors.prettyError(
             "error: failed to parse response from Zig download server\n",
+            .{},
+        ) catch {},
+        InstallError.ArtifactDownloadFailed => errors.prettyError(
+            "error: failed to download artifact from Zig download server\n",
+            .{},
+        ) catch {},
+        InstallError.TarballWriteFailed => errors.prettyError(
+            "error: failed to write artifact to cache directory\n",
             .{},
         ) catch {},
     }
