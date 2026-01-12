@@ -96,6 +96,18 @@ const foo = Type{ .field = value };     // Avoid
 
 **Allocations**: We're using an arena allocator (the builtin zig one), so we do _not_ need to worry about freeing memory, except at the end of the program.
 
+## Development
+
+Always run the following to verify your changes:
+
+### Running the CLI
+
+`zig build run -- <args>`
+
+### Running the Tests
+
+`zig build test`
+
 ## Safety Conventions
 
 Inspired by [TigerStyle](https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md).
