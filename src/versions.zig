@@ -17,7 +17,13 @@ pub fn getVersionsDir(allocator: std.mem.Allocator) ![]const u8 {
 
 pub fn getInstalledVersion(allocator: std.mem.Allocator, version: []const u8) !?[]const u8 {
     const versions_dir = try getVersionsDir(allocator);
+    defer allocator.free(versions_dir);
+    return getInstalledVersionFromDir(allocator, versions_dir, version);
+}
+
+fn getInstalledVersionFromDir(allocator: std.mem.Allocator, versions_dir: []const u8, version: []const u8) !?[]const u8 {
     const version_path = try std.fs.path.join(allocator, &.{ versions_dir, version });
+    defer allocator.free(version_path);
     const version_file_path = try std.fs.path.join(allocator, &.{ version_path, VERSION_FILE_NAME });
     defer allocator.free(version_file_path);
 
@@ -55,7 +61,7 @@ fn listInstalledVersions(allocator: std.mem.Allocator, versions_dir: []const u8)
 
 const testing = std.testing;
 
-test "getInstalledVersion returns null when no file" {
+test "getInstalledVersionFromDir returns null when no file" {
     var tmp_dir = testing.tmpDir(.{});
     defer tmp_dir.cleanup();
 
@@ -65,14 +71,11 @@ test "getInstalledVersion returns null when no file" {
     const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
     defer allocator.free(tmp_path);
 
-    const version_path = try std.fs.path.join(allocator, &.{ tmp_path, "0.13.0" });
-    defer allocator.free(version_path);
-
-    const result = try getInstalledVersion(allocator, version_path);
+    const result = try getInstalledVersionFromDir(allocator, tmp_path, "0.13.0");
     try testing.expect(result == null);
 }
 
-test "getInstalledVersion returns content" {
+test "getInstalledVersionFromDir returns content" {
     var tmp_dir = testing.tmpDir(.{});
     defer tmp_dir.cleanup();
 
@@ -87,10 +90,7 @@ test "getInstalledVersion returns content" {
     const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
     defer allocator.free(tmp_path);
 
-    const version_path = try std.fs.path.join(allocator, &.{ tmp_path, "master" });
-    defer allocator.free(version_path);
-
-    const result = try getInstalledVersion(allocator, version_path);
+    const result = try getInstalledVersionFromDir(allocator, tmp_path, "master");
     defer if (result) |r| allocator.free(r);
 
     try testing.expect(result != null);
