@@ -60,6 +60,7 @@ fn listAction(ctx: cli.Context) !void {
 
 test {
     _ = @import("cli/cli.zig");
+    _ = @import("dirs.zig");
     _ = @import("install/install.zig");
     _ = @import("list.zig");
     _ = @import("versions.zig");
