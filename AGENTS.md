@@ -106,6 +106,10 @@ Always run the following to verify your changes:
 
 `zig build test`
 
+### Running the End-to-End Tests
+
+`zig build e2e`
+
 ## Safety Conventions
 
 Inspired by [TigerStyle](https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md).
