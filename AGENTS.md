@@ -94,6 +94,8 @@ const foo = Type{ .field = value };     // Avoid
 
 **Tests:** Inline in the same file, register in src/main.zig test block
 
+**End-to-End Tests:** In `src/e2e`, only for happy path or important edge cases. Most things should be tested in unit tests.
+
 ## Development
 
 Always run the following to verify your changes:
