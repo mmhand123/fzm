@@ -142,18 +142,10 @@ pub const Command = struct {
 
     /// Find a flag by long name or short character.
     pub fn findFlag(self: *const Command, name: []const u8) ?Flag {
-        // Check if it's a short flag (single character)
         if (name.len == 1) {
-            for (self.flags.items) |f| {
-                if (f.short) |short| {
-                    if (short == name[0]) {
-                        return f;
-                    }
-                }
-            }
+            return self.findFlagByShort(name[0]) orelse return null;
         }
 
-        // Check long names
         for (self.flags.items) |f| {
             if (std.mem.eql(u8, f.long, name)) {
                 return f;
