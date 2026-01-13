@@ -241,4 +241,5 @@ test {
     _ = @import("command.zig");
     _ = @import("parser.zig");
     _ = @import("help.zig");
+    _ = @import("tests.zig");
 }
