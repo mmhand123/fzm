@@ -29,7 +29,7 @@ test "full CLI flow with action" {
 
         fn action(ctx: Context) !void {
             called.* = true;
-            version.* = ctx.positional("version");
+            version.* = ctx.arg("version");
         }
     };
     TestAction.called = &action_called;
@@ -200,19 +200,19 @@ test "CLI unknown command returns error" {
 // Parser Edge Cases
 // ============================================================================
 
-test "parser: flags after positional" {
+test "parser: flags after argument" {
     var cmd = Command.init(std.testing.allocator, .{ .name = "test" });
     defer cmd.deinit();
     _ = cmd.addArgument(.{ .name = "file", .required = true });
     _ = cmd.addFlag(.{ .long = "verbose", .short = 'v' });
 
-    // Flag after positional should still work
+    // Flag after argument should still work
     const args = [_][]const u8{ "myfile.txt", "--verbose" };
     var p = Parser.init(std.testing.allocator, &args);
     defer p.deinit();
 
     const result = try p.parse(&cmd);
-    try std.testing.expectEqualStrings("myfile.txt", result.context.positional("file").?);
+    try std.testing.expectEqualStrings("myfile.txt", result.context.arg("file").?);
     try std.testing.expect(result.context.flag("verbose"));
 }
 
@@ -247,7 +247,7 @@ test "parser: value flag with equals in value" {
     try std.testing.expectEqualStrings("key=value", result.context.flagValue("config").?);
 }
 
-test "parser: multiple positionals" {
+test "parser: multiple arguments" {
     var cmd = Command.init(std.testing.allocator, .{ .name = "copy" });
     defer cmd.deinit();
     _ = cmd.addArgument(.{ .name = "source", .required = true });
@@ -259,9 +259,9 @@ test "parser: multiple positionals" {
     defer p.deinit();
 
     const result = try p.parse(&cmd);
-    try std.testing.expectEqualStrings("src.txt", result.context.positional("source").?);
-    try std.testing.expectEqualStrings("dst.txt", result.context.positional("dest").?);
-    try std.testing.expect(result.context.positional("extra") == null);
+    try std.testing.expectEqualStrings("src.txt", result.context.arg("source").?);
+    try std.testing.expectEqualStrings("dst.txt", result.context.arg("dest").?);
+    try std.testing.expect(result.context.arg("extra") == null);
 }
 
 test "parser: default flag value" {
@@ -327,7 +327,7 @@ test "help: shows aliases" {
     try std.testing.expect(std.mem.indexOf(u8, result, "list, ls, l") != null);
 }
 
-test "help: shows positional arguments" {
+test "help: shows arguments" {
     var cmd = Command.init(std.testing.allocator, .{
         .name = "install",
         .description = "Install a package",
@@ -361,7 +361,7 @@ test "help: shows positional arguments" {
     try std.testing.expect(std.mem.indexOf(u8, result, "(optional)") != null);
 }
 
-test "help: usage line with positionals" {
+test "help: usage line with arguments" {
     var cmd = Command.init(std.testing.allocator, .{
         .name = "install",
     });

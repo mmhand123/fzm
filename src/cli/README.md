@@ -6,7 +6,7 @@ A lightweight, Commander-inspired CLI parsing library for Zig.
 
 - **Commands & Subcommands** - Hierarchical command structure with actions
 - **Flags** - Short (`-v`) and long (`--verbose`) forms, with optional values
-- **Arguments** - Named positional arguments with required/optional support
+- **Arguments** - Named arguments with required/optional support
 - **Aliases** - First-class alias support (e.g., `ls` for `list`)
 - **Automatic Help** - Generated at every level (`--help`, `-h`, `help`)
 - **Version Handling** - Special case: `-v`, `--version`, and `version` all work
@@ -61,7 +61,7 @@ pub fn main() !void {
 }
 
 fn installAction(ctx: cli.Context) !void {
-    const package = ctx.positional("package").?;
+    const package = ctx.arg("package").?;
     const force = ctx.flag("force");
     // ...
 }
@@ -134,8 +134,8 @@ Passed to action functions:
 fn myAction(ctx: cli.Context) !void {
     ctx.flag("verbose")              // bool: is flag present?
     ctx.flagValue("output")          // ?[]const u8: flag's value
-    ctx.positional("file")           // ?[]const u8: positional by name
-    ctx.positionals()                // []const []const u8: all positionals
+    ctx.arg("file")                  // ?[]const u8: argument by name
+    ctx.args()                       // []const []const u8: all arguments
     ctx.allocator                    // std.mem.Allocator
 }
 ```
@@ -151,7 +151,7 @@ fn myAction(ctx: cli.Context) !void {
 | `-o file` | Short flag with value |
 | `-o=file` | Short flag with value (equals) |
 | `-abc` | Combined: `-a -b -c` |
-| `--` | Stop flag parsing (rest are positionals) |
+| `--` | Stop flag parsing (rest are arguments) |
 
 ## Help Output
 

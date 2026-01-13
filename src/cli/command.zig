@@ -1,7 +1,7 @@
 //! Command definition and builder for the CLI.
 //!
 //! Commands represent actions the user can invoke (e.g., `install`, `list`).
-//! Each command can have flags, positional arguments, and subcommands.
+//! Each command can have flags, arguments, and subcommands.
 
 const std = @import("std");
 const flag_mod = @import("flag.zig");
@@ -16,8 +16,8 @@ pub const Context = struct {
     allocator: std.mem.Allocator,
     flag_values: std.StringHashMapUnmanaged([]const u8),
     flag_present: std.StringHashMapUnmanaged(void),
-    positional_values: std.StringHashMapUnmanaged([]const u8),
-    raw_positionals: []const []const u8,
+    arg_values: std.StringHashMapUnmanaged([]const u8),
+    raw_args: []const []const u8,
 
     /// Check if a boolean flag is present.
     pub fn flag(self: Context, name: []const u8) bool {
@@ -29,21 +29,21 @@ pub const Context = struct {
         return self.flag_values.get(name);
     }
 
-    /// Get a positional argument by name.
-    pub fn positional(self: Context, name: []const u8) ?[]const u8 {
-        return self.positional_values.get(name);
+    /// Get an argument by name.
+    pub fn arg(self: Context, name: []const u8) ?[]const u8 {
+        return self.arg_values.get(name);
     }
 
-    /// Get all positional arguments in order.
-    pub fn positionals(self: Context) []const []const u8 {
-        return self.raw_positionals;
+    /// Get all arguments in order.
+    pub fn args(self: Context) []const []const u8 {
+        return self.raw_args;
     }
 };
 
 /// Function signature for command actions.
 pub const ActionFn = *const fn (Context) anyerror!void;
 
-/// A CLI command with optional flags, positionals, and subcommands.
+/// A CLI command with optional flags, arguments, and subcommands.
 pub const Command = struct {
     allocator: std.mem.Allocator,
 
@@ -106,7 +106,7 @@ pub const Command = struct {
         return self;
     }
 
-    /// Add a positional argument. Returns self for chaining.
+    /// Add an argument. Returns self for chaining.
     pub fn addArgument(self: *Command, opts: ArgumentOptions) *Command {
         self.args.append(self.allocator, .{
             .name = opts.name,

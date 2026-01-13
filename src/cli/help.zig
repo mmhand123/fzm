@@ -1,7 +1,7 @@
 //! Help text generation for the CLI.
 //!
 //! Generates formatted help output for commands at any level,
-//! including usage lines, command lists, flag descriptions, and positional arguments.
+//! including usage lines, command lists, flag descriptions, and arguments.
 
 const std = @import("std");
 const command_mod = @import("command.zig");
@@ -89,7 +89,7 @@ fn printUsage(
         try writer.print(" <command>", .{});
     }
 
-    // Add positional arguments
+    // Add arguments
     for (cmd.args.items) |pos| {
         var buf: [64]u8 = undefined;
         const formatted = pos.formatUsage(&buf);
@@ -207,7 +207,7 @@ fn printFlags(
     }
 }
 
-/// Print the list of positional arguments.
+/// Print the list of arguments.
 fn printArguments(writer: anytype, cmd: *const Command) !void {
     // Find max name length for alignment
     var max_len: usize = 0;

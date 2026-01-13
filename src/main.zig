@@ -50,7 +50,7 @@ pub fn main() !void {
 }
 
 fn installAction(ctx: cli.Context) !void {
-    const version = ctx.positional("version").?;
+    const version = ctx.arg("version").?;
     try installation.install(ctx.allocator, version);
 }
 

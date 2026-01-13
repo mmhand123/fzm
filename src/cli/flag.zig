@@ -44,9 +44,9 @@ pub const Flag = struct {
     }
 };
 
-/// A positional argument (unnamed, identified by position).
+/// An argument (non-flag parameter identified by position).
 ///
-/// Arguments are the non-flag parameters in order.
+/// Arguments are the non-flag parameters passed to a command.
 /// Example: in `fzm install 0.13.0`, "0.13.0" is an argument.
 pub const Argument = struct {
     /// Name for documentation and lookup (e.g., "version")

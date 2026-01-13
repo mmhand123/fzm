@@ -4,7 +4,7 @@
 //! - Long flags: --verbose, --output=value, --output value
 //! - Short flags: -v, -o value, -o=value
 //! - Combined short flags: -abc (expands to -a -b -c)
-//! - Positional arguments (arguments)
+//! - Arguments (non-flag parameters)
 //! - The -- separator to stop flag parsing
 
 const std = @import("std");
@@ -42,8 +42,8 @@ pub const Parser = struct {
     // Accumulated results
     flag_values: std.StringHashMapUnmanaged([]const u8),
     flag_present: std.StringHashMapUnmanaged(void),
-    positional_values: std.ArrayListUnmanaged([]const u8),
-    positional_map: std.StringHashMapUnmanaged([]const u8),
+    arg_values: std.ArrayListUnmanaged([]const u8),
+    arg_map: std.StringHashMapUnmanaged([]const u8),
 
     pub fn init(allocator: std.mem.Allocator, args: []const []const u8) Parser {
         return .{
@@ -53,16 +53,16 @@ pub const Parser = struct {
             .stop_parsing_flags = false,
             .flag_values = .empty,
             .flag_present = .empty,
-            .positional_values = .empty,
-            .positional_map = .empty,
+            .arg_values = .empty,
+            .arg_map = .empty,
         };
     }
 
     pub fn deinit(self: *Parser) void {
         self.flag_values.deinit(self.allocator);
         self.flag_present.deinit(self.allocator);
-        self.positional_values.deinit(self.allocator);
-        self.positional_map.deinit(self.allocator);
+        self.arg_values.deinit(self.allocator);
+        self.arg_map.deinit(self.allocator);
     }
 
     /// Parse arguments for a specific command.
@@ -101,9 +101,9 @@ pub const Parser = struct {
                 continue;
             }
 
-            // Not a flag - could be a subcommand or positional
-            // Check for subcommand first (only if no positionals collected yet)
-            if (self.positional_values.items.len == 0) {
+            // Not a flag - could be a subcommand or argument
+            // Check for subcommand first (only if no arguments collected yet)
+            if (self.arg_values.items.len == 0) {
                 if (current_cmd.findSubcommand(arg)) |subcmd| {
                     current_cmd = subcmd;
                     self.index += 1;
@@ -111,17 +111,17 @@ pub const Parser = struct {
                 }
             }
 
-            // It's a positional argument
-            self.positional_values.append(self.allocator, arg) catch return error.OutOfMemory;
+            // It's an argument
+            self.arg_values.append(self.allocator, arg) catch return error.OutOfMemory;
             self.index += 1;
         }
 
-        // Map positionals to their defined names
-        for (current_cmd.args.items, 0..) |pos_def, i| {
-            if (i < self.positional_values.items.len) {
-                self.positional_map.put(self.allocator, pos_def.name, self.positional_values.items[i]) catch return error.OutOfMemory;
-            } else if (pos_def.required and !help_requested) {
-                printError("missing required argument: <{s}>", .{pos_def.name});
+        // Map arguments to their defined names
+        for (current_cmd.args.items, 0..) |arg_def, i| {
+            if (i < self.arg_values.items.len) {
+                self.arg_map.put(self.allocator, arg_def.name, self.arg_values.items[i]) catch return error.OutOfMemory;
+            } else if (arg_def.required and !help_requested) {
+                printError("missing required argument: <{s}>", .{arg_def.name});
                 return error.MissingRequiredArg;
             }
         }
@@ -141,8 +141,8 @@ pub const Parser = struct {
                 .allocator = self.allocator,
                 .flag_values = self.flag_values,
                 .flag_present = self.flag_present,
-                .positional_values = self.positional_map,
-                .raw_positionals = self.positional_values.items,
+                .arg_values = self.arg_map,
+                .raw_args = self.arg_values.items,
             },
             .help_requested = help_requested,
         };
@@ -323,7 +323,7 @@ test "Parser short flag with equals value" {
     try std.testing.expectEqualStrings("file.txt", result.context.flagValue("output").?);
 }
 
-test "Parser positional arguments" {
+test "Parser arguments" {
     var cmd = Command.init(std.testing.allocator, .{ .name = "install" });
     defer cmd.deinit();
     _ = cmd.addArgument(.{ .name = "version", .required = true });
@@ -333,7 +333,7 @@ test "Parser positional arguments" {
     defer parser.deinit();
 
     const result = try parser.parse(&cmd);
-    try std.testing.expectEqualStrings("0.13.0", result.context.positional("version").?);
+    try std.testing.expectEqualStrings("0.13.0", result.context.arg("version").?);
 }
 
 test "Parser double dash stops flag parsing" {
@@ -341,13 +341,13 @@ test "Parser double dash stops flag parsing" {
     defer cmd.deinit();
     _ = cmd.addArgument(.{ .name = "arg", .required = true });
 
-    // After --, "--foo" should be treated as positional
+    // After --, "--foo" should be treated as an argument
     const args = [_][]const u8{ "--", "--foo" };
     var parser = Parser.init(std.testing.allocator, &args);
     defer parser.deinit();
 
     const result = try parser.parse(&cmd);
-    try std.testing.expectEqualStrings("--foo", result.context.positional("arg").?);
+    try std.testing.expectEqualStrings("--foo", result.context.arg("arg").?);
 }
 
 test "Parser help flag" {
@@ -374,7 +374,7 @@ test "Parser subcommand" {
 
     const result = try parser.parse(&cmd);
     try std.testing.expectEqualStrings("install", result.command.name);
-    try std.testing.expectEqualStrings("0.13.0", result.context.positional("version").?);
+    try std.testing.expectEqualStrings("0.13.0", result.context.arg("version").?);
 }
 
 test "Parser missing required arg" {
