@@ -28,7 +28,7 @@ pub fn main() !void {
     _ = app.addCommand(.{
         .name = "install",
         .aliases = &.{"i"},
-        .description = "Install a Zig version (e.g., master, 0.13.0)",
+        .description = "Install a Zig version (e.g., master, 0.15.2)",
         .action = installAction,
     }).addArgument(.{
         .name = "version",
