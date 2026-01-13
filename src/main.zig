@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const clap = @import("clap");
 const installation = @import("./install/install.zig");
+const list_cmd = @import("./list.zig");
 const logging = @import("./logging.zig");
 
 const VERSION = "0.0.1";
@@ -23,6 +24,7 @@ pub fn main() !void {
         \\-h, --help      Display this help and exit.
         \\-v, --version   Print version information and exit.
         \\-i, --install <str>   Install a new Zig version. Can be a specific version or "master".
+        \\-l, --list      List all installed versions.
     );
 
     var diag: clap.Diagnostic = .{};
@@ -40,10 +42,13 @@ pub fn main() !void {
         std.debug.print("fzm v{s}\n", .{VERSION});
     } else if (res.args.install) |version| {
         try installation.install(allocator, version);
+    } else if (res.args.list != 0) {
+        try list_cmd.list(allocator);
     }
 }
 
 test {
     _ = @import("install/install.zig");
+    _ = @import("list.zig");
     _ = @import("versions.zig");
 }

@@ -38,7 +38,13 @@ fn getInstalledVersionFromDir(allocator: std.mem.Allocator, versions_dir: []cons
     return std.mem.trim(u8, content, &std.ascii.whitespace);
 }
 
-fn listInstalledVersions(allocator: std.mem.Allocator, versions_dir: []const u8) ![][]const u8 {
+pub fn listInstalledVersions(allocator: std.mem.Allocator) ![][]const u8 {
+    const versions_dir = try getVersionsDir(allocator);
+    defer allocator.free(versions_dir);
+    return listInstalledVersionsFromDir(allocator, versions_dir);
+}
+
+fn listInstalledVersionsFromDir(allocator: std.mem.Allocator, versions_dir: []const u8) ![][]const u8 {
     var dir = std.fs.openDirAbsolute(versions_dir, .{ .iterate = true }) catch |err| switch (err) {
         error.FileNotFound => return &.{},
         else => return err,
@@ -97,13 +103,13 @@ test "getInstalledVersionFromDir returns content" {
     try testing.expectEqualStrings(version_content, result.?);
 }
 
-test "listInstalledVersions returns empty slice for non-existent directory" {
+test "listInstalledVersionsFromDir returns empty slice for non-existent directory" {
     const allocator = testing.allocator;
-    const result = try listInstalledVersions(allocator, "/non/existent/path");
+    const result = try listInstalledVersionsFromDir(allocator, "/non/existent/path");
     try testing.expectEqual(0, result.len);
 }
 
-test "listInstalledVersions returns empty slice for empty directory" {
+test "listInstalledVersionsFromDir returns empty slice for empty directory" {
     var tmp_dir = testing.tmpDir(.{});
     defer tmp_dir.cleanup();
 
@@ -111,13 +117,13 @@ test "listInstalledVersions returns empty slice for empty directory" {
     const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
     defer allocator.free(tmp_path);
 
-    const result = try listInstalledVersions(allocator, tmp_path);
+    const result = try listInstalledVersionsFromDir(allocator, tmp_path);
     defer allocator.free(result);
 
     try testing.expectEqual(0, result.len);
 }
 
-test "listInstalledVersions returns version directories" {
+test "listInstalledVersionsFromDir returns version directories" {
     var tmp_dir = testing.tmpDir(.{});
     defer tmp_dir.cleanup();
 
@@ -129,7 +135,7 @@ test "listInstalledVersions returns version directories" {
     const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
     defer allocator.free(tmp_path);
 
-    const result = try listInstalledVersions(allocator, tmp_path);
+    const result = try listInstalledVersionsFromDir(allocator, tmp_path);
     defer {
         for (result) |v| allocator.free(v);
         allocator.free(result);
@@ -149,7 +155,7 @@ test "listInstalledVersions returns version directories" {
     try testing.expectEqualStrings("master", result[2]);
 }
 
-test "listInstalledVersions ignores files" {
+test "listInstalledVersionsFromDir ignores files" {
     var tmp_dir = testing.tmpDir(.{});
     defer tmp_dir.cleanup();
 
@@ -161,7 +167,7 @@ test "listInstalledVersions ignores files" {
     const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
     defer allocator.free(tmp_path);
 
-    const result = try listInstalledVersions(allocator, tmp_path);
+    const result = try listInstalledVersionsFromDir(allocator, tmp_path);
     defer {
         for (result) |v| allocator.free(v);
         allocator.free(result);
