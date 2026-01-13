@@ -23,27 +23,27 @@ pub fn printInstallError(err: InstallError, version: []const u8) void {
 
     switch (err) {
         InstallError.InvalidVersion => errors.prettyError(
-            "error: invalid version \"{s}\" - must be \"master\" or semver (e.g., 0.15.2)\n",
+            "invalid version \"{s}\" - must be \"master\" or semver (e.g., 0.15.2)\n",
             .{version},
         ) catch {},
         InstallError.VersionNotFound => errors.prettyError(
-            "error: version \"{s}\" not found on Zig download server\n",
+            "version \"{s}\" not found on Zig download server\n",
             .{version},
         ) catch {},
         InstallError.HttpRequestFailed => errors.prettyError(
-            "error: failed to connect to Zig download server\n",
+            "failed to connect to Zig download server\n",
             .{},
         ) catch {},
         InstallError.JsonParseFailed => errors.prettyError(
-            "error: failed to parse response from Zig download server\n",
+            "failed to parse response from Zig download server\n",
             .{},
         ) catch {},
         InstallError.ArtifactDownloadFailed => errors.prettyError(
-            "error: failed to download artifact from Zig download server\n",
+            "failed to download artifact from Zig download server\n",
             .{},
         ) catch {},
         InstallError.TarballWriteFailed => errors.prettyError(
-            "error: failed to write artifact to cache directory\n",
+            "failed to write artifact to cache directory\n",
             .{},
         ) catch {},
     }
