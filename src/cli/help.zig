@@ -9,7 +9,7 @@ const flag_mod = @import("flag.zig");
 
 const Command = command_mod.Command;
 const Flag = flag_mod.Flag;
-const Positional = flag_mod.Positional;
+const Argument = flag_mod.Argument;
 
 /// Configuration for help generation.
 pub const HelpConfig = struct {
@@ -49,10 +49,10 @@ pub fn printHelp(
     // Usage line
     try printUsage(writer, cmd, config.app_name, is_root);
 
-    // Positional arguments section
-    if (cmd.positional_args.items.len > 0) {
+    // Arguments section
+    if (cmd.args.items.len > 0) {
         try writer.print("\nArguments:\n", .{});
-        try printPositionals(writer, cmd);
+        try printArguments(writer, cmd);
     }
 
     // Commands section (subcommands)
@@ -90,7 +90,7 @@ fn printUsage(
     }
 
     // Add positional arguments
-    for (cmd.positional_args.items) |pos| {
+    for (cmd.args.items) |pos| {
         var buf: [64]u8 = undefined;
         const formatted = pos.formatUsage(&buf);
         try writer.print(" {s}", .{formatted});
@@ -208,17 +208,17 @@ fn printFlags(
 }
 
 /// Print the list of positional arguments.
-fn printPositionals(writer: anytype, cmd: *const Command) !void {
+fn printArguments(writer: anytype, cmd: *const Command) !void {
     // Find max name length for alignment
     var max_len: usize = 0;
-    for (cmd.positional_args.items) |pos| {
-        if (pos.name.len > max_len) max_len = pos.name.len;
+    for (cmd.args.items) |arg| {
+        if (arg.name.len > max_len) max_len = arg.name.len;
     }
 
     // Ensure minimum width
     if (max_len < 12) max_len = 12;
 
-    for (cmd.positional_args.items) |pos| {
+    for (cmd.args.items) |pos| {
         try writer.print("  {s}", .{pos.name});
         const padding = max_len - pos.name.len + 2;
         try writer.writeByteNTimes(' ', padding);
@@ -272,7 +272,7 @@ test "printHelp subcommand" {
     });
     defer cmd.deinit();
 
-    _ = cmd.addPositional(.{ .name = "package", .description = "Package name", .required = true });
+    _ = cmd.addArgument(.{ .name = "package", .description = "Package name", .required = true });
     _ = cmd.addFlag(.{ .long = "force", .short = 'f', .description = "Force installation" });
 
     var output: [2048]u8 = undefined;

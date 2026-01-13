@@ -30,7 +30,7 @@ pub fn main() !void {
         .aliases = &.{"i"},
         .description = "Install a Zig version (e.g., master, 0.13.0)",
         .action = installAction,
-    }).addPositional(.{
+    }).addArgument(.{
         .name = "version",
         .description = "Version to install",
         .required = true,

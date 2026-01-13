@@ -16,7 +16,7 @@
 //!     .name = "install",
 //!     .description = "Install a package",
 //!     .action = installAction,
-//! }).addPositional(.{
+//! }).addArgument(.{
 //!     .name = "package",
 //!     .description = "Package to install",
 //! });
@@ -219,7 +219,7 @@ test "Cli basic setup" {
     _ = app.addCommand(.{
         .name = "install",
         .description = "Install something",
-    }).addPositional(.{
+    }).addArgument(.{
         .name = "package",
         .required = true,
     });

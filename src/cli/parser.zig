@@ -4,7 +4,7 @@
 //! - Long flags: --verbose, --output=value, --output value
 //! - Short flags: -v, -o value, -o=value
 //! - Combined short flags: -abc (expands to -a -b -c)
-//! - Positional arguments
+//! - Positional arguments (arguments)
 //! - The -- separator to stop flag parsing
 
 const std = @import("std");
@@ -117,7 +117,7 @@ pub const Parser = struct {
         }
 
         // Map positionals to their defined names
-        for (current_cmd.positional_args.items, 0..) |pos_def, i| {
+        for (current_cmd.args.items, 0..) |pos_def, i| {
             if (i < self.positional_values.items.len) {
                 self.positional_map.put(self.allocator, pos_def.name, self.positional_values.items[i]) catch return error.OutOfMemory;
             } else if (pos_def.required and !help_requested) {
@@ -326,7 +326,7 @@ test "Parser short flag with equals value" {
 test "Parser positional arguments" {
     var cmd = Command.init(std.testing.allocator, .{ .name = "install" });
     defer cmd.deinit();
-    _ = cmd.addPositional(.{ .name = "version", .required = true });
+    _ = cmd.addArgument(.{ .name = "version", .required = true });
 
     const args = [_][]const u8{"0.13.0"};
     var parser = Parser.init(std.testing.allocator, &args);
@@ -339,7 +339,7 @@ test "Parser positional arguments" {
 test "Parser double dash stops flag parsing" {
     var cmd = Command.init(std.testing.allocator, .{ .name = "test" });
     defer cmd.deinit();
-    _ = cmd.addPositional(.{ .name = "arg", .required = true });
+    _ = cmd.addArgument(.{ .name = "arg", .required = true });
 
     // After --, "--foo" should be treated as positional
     const args = [_][]const u8{ "--", "--foo" };
@@ -366,7 +366,7 @@ test "Parser subcommand" {
     var cmd = Command.init(std.testing.allocator, .{ .name = "app" });
     defer cmd.deinit();
     const subcmd = cmd.addSubcommand(.{ .name = "install" });
-    _ = subcmd.addPositional(.{ .name = "version", .required = true });
+    _ = subcmd.addArgument(.{ .name = "version", .required = true });
 
     const args = [_][]const u8{ "install", "0.13.0" };
     var parser = Parser.init(std.testing.allocator, &args);
@@ -380,7 +380,7 @@ test "Parser subcommand" {
 test "Parser missing required arg" {
     var cmd = Command.init(std.testing.allocator, .{ .name = "install" });
     defer cmd.deinit();
-    _ = cmd.addPositional(.{ .name = "version", .required = true });
+    _ = cmd.addArgument(.{ .name = "version", .required = true });
 
     const args = [_][]const u8{};
     var parser = Parser.init(std.testing.allocator, &args);

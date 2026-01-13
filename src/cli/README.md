@@ -6,11 +6,11 @@ A lightweight, Commander-inspired CLI parsing library for Zig.
 
 - **Commands & Subcommands** - Hierarchical command structure with actions
 - **Flags** - Short (`-v`) and long (`--verbose`) forms, with optional values
-- **Positional Arguments** - Named positionals with required/optional support
+- **Arguments** - Named positional arguments with required/optional support
 - **Aliases** - First-class alias support (e.g., `ls` for `list`)
 - **Automatic Help** - Generated at every level (`--help`, `-h`, `help`)
 - **Version Handling** - Special case: `-v`, `--version`, and `version` all work
-- **Fluent Builder API** - Chain `.addFlag()`, `.addPositional()`, `.addSubcommand()`
+- **Fluent Builder API** - Chain `.addFlag()`, `.addArgument()`, `.addSubcommand()`
 - **Flexible Parsing** - Combined flags (`-abc`), equals syntax (`--out=file`), `--` separator
 
 ## Usage
@@ -36,7 +36,7 @@ pub fn main() !void {
         .name = "install",
         .description = "Install a package",
         .action = installAction,
-    }).addPositional(.{
+    }).addArgument(.{
         .name = "package",
         .description = "Package to install",
         .required = true,
@@ -100,7 +100,7 @@ const cmd = app.addCommand(.{
 
 // Fluent API - all return *Command
 cmd.addFlag(.{ ... });
-cmd.addPositional(.{ ... });
+cmd.addArgument(.{ ... });
 cmd.addSubcommand(.{ ... });   // Returns the new subcommand
 ```
 
@@ -116,10 +116,10 @@ cmd.addFlag(.{
 });
 ```
 
-### Positional
+### Argument
 
 ```zig
-cmd.addPositional(.{
+cmd.addArgument(.{
     .name = "file",
     .description = "...",
     .required = true,          // Default: true
@@ -188,7 +188,7 @@ Flags:
 cli/
   cli.zig       # Main Cli struct, public entry point
   command.zig   # Command struct and builder
-  flag.zig      # Flag and Positional definitions
+  flag.zig      # Flag and Argument definitions
   parser.zig    # Argument parsing logic
   help.zig      # Help text generation
   tests.zig     # Test suite

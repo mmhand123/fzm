@@ -46,7 +46,7 @@ test "full CLI flow with action" {
         .name = "install",
         .description = "Install a version",
         .action = TestAction.action,
-    }).addPositional(.{
+    }).addArgument(.{
         .name = "version",
         .description = "Version to install",
         .required = true,
@@ -203,7 +203,7 @@ test "CLI unknown command returns error" {
 test "parser: flags after positional" {
     var cmd = Command.init(std.testing.allocator, .{ .name = "test" });
     defer cmd.deinit();
-    _ = cmd.addPositional(.{ .name = "file", .required = true });
+    _ = cmd.addArgument(.{ .name = "file", .required = true });
     _ = cmd.addFlag(.{ .long = "verbose", .short = 'v' });
 
     // Flag after positional should still work
@@ -250,9 +250,9 @@ test "parser: value flag with equals in value" {
 test "parser: multiple positionals" {
     var cmd = Command.init(std.testing.allocator, .{ .name = "copy" });
     defer cmd.deinit();
-    _ = cmd.addPositional(.{ .name = "source", .required = true });
-    _ = cmd.addPositional(.{ .name = "dest", .required = true });
-    _ = cmd.addPositional(.{ .name = "extra", .required = false });
+    _ = cmd.addArgument(.{ .name = "source", .required = true });
+    _ = cmd.addArgument(.{ .name = "dest", .required = true });
+    _ = cmd.addArgument(.{ .name = "extra", .required = false });
 
     const args = [_][]const u8{ "src.txt", "dst.txt" };
     var p = Parser.init(std.testing.allocator, &args);
@@ -334,12 +334,12 @@ test "help: shows positional arguments" {
     });
     defer cmd.deinit();
 
-    _ = cmd.addPositional(.{
+    _ = cmd.addArgument(.{
         .name = "package",
         .description = "Package to install",
         .required = true,
     });
-    _ = cmd.addPositional(.{
+    _ = cmd.addArgument(.{
         .name = "version",
         .description = "Specific version",
         .required = false,
@@ -367,8 +367,8 @@ test "help: usage line with positionals" {
     });
     defer cmd.deinit();
 
-    _ = cmd.addPositional(.{ .name = "package", .required = true });
-    _ = cmd.addPositional(.{ .name = "version", .required = false });
+    _ = cmd.addArgument(.{ .name = "package", .required = true });
+    _ = cmd.addArgument(.{ .name = "version", .required = false });
 
     var output: [2048]u8 = undefined;
     var stream = std.io.fixedBufferStream(&output);

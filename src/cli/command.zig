@@ -8,8 +8,8 @@ const flag_mod = @import("flag.zig");
 
 const Flag = flag_mod.Flag;
 const FlagOptions = flag_mod.FlagOptions;
-const Positional = flag_mod.Positional;
-const PositionalOptions = flag_mod.PositionalOptions;
+const Argument = flag_mod.Argument;
+const ArgumentOptions = flag_mod.ArgumentOptions;
 
 /// Parsed result passed to command actions.
 pub const Context = struct {
@@ -63,7 +63,7 @@ pub const Command = struct {
     flags: std.ArrayListUnmanaged(Flag) = .empty,
 
     /// Positional arguments for this command
-    positional_args: std.ArrayListUnmanaged(Positional) = .empty,
+    args: std.ArrayListUnmanaged(Argument) = .empty,
 
     /// Subcommands nested under this command
     subcommands: std.ArrayListUnmanaged(*Command) = .empty,
@@ -91,7 +91,7 @@ pub const Command = struct {
         }
         self.subcommands.deinit(self.allocator);
         self.flags.deinit(self.allocator);
-        self.positional_args.deinit(self.allocator);
+        self.args.deinit(self.allocator);
     }
 
     /// Add a flag to this command. Returns self for chaining.
@@ -107,12 +107,12 @@ pub const Command = struct {
     }
 
     /// Add a positional argument. Returns self for chaining.
-    pub fn addPositional(self: *Command, opts: PositionalOptions) *Command {
-        self.positional_args.append(self.allocator, .{
+    pub fn addArgument(self: *Command, opts: ArgumentOptions) *Command {
+        self.args.append(self.allocator, .{
             .name = opts.name,
             .description = opts.description,
             .required = opts.required,
-        }) catch @panic("failed to add positional");
+        }) catch @panic("failed to add argument");
         return self;
     }
 
@@ -244,20 +244,20 @@ test "Command.addFlag chaining" {
     try std.testing.expectEqualStrings("force", cmd.flags.items[1].long);
 }
 
-test "Command.addPositional chaining" {
+test "Command.addArgument chaining" {
     var cmd = Command.init(std.testing.allocator, .{
         .name = "install",
     });
     defer cmd.deinit();
 
     _ = cmd
-        .addPositional(.{ .name = "version", .required = true })
-        .addPositional(.{ .name = "target", .required = false });
+        .addArgument(.{ .name = "version", .required = true })
+        .addArgument(.{ .name = "target", .required = false });
 
-    try std.testing.expectEqual(2, cmd.positional_args.items.len);
-    try std.testing.expectEqualStrings("version", cmd.positional_args.items[0].name);
-    try std.testing.expect(cmd.positional_args.items[0].required);
-    try std.testing.expect(!cmd.positional_args.items[1].required);
+    try std.testing.expectEqual(2, cmd.args.items.len);
+    try std.testing.expectEqualStrings("version", cmd.args.items[0].name);
+    try std.testing.expect(cmd.args.items[0].required);
+    try std.testing.expect(!cmd.args.items[1].required);
 }
 
 test "Command.findSubcommand" {

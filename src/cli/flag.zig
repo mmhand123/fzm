@@ -1,7 +1,7 @@
-//! Flag and positional argument definitions for the CLI.
+//! Flag and argument definitions for the CLI.
 //!
 //! Flags are optional parameters like `--verbose` or `-f`.
-//! Positionals are unnamed arguments identified by position.
+//! Arguments are unnamed parameters identified by position.
 
 const std = @import("std");
 
@@ -46,20 +46,20 @@ pub const Flag = struct {
 
 /// A positional argument (unnamed, identified by position).
 ///
-/// Positionals are the non-flag arguments in order.
-/// Example: in `fzm install 0.13.0`, "0.13.0" is a positional.
-pub const Positional = struct {
+/// Arguments are the non-flag parameters in order.
+/// Example: in `fzm install 0.13.0`, "0.13.0" is an argument.
+pub const Argument = struct {
     /// Name for documentation and lookup (e.g., "version")
     name: []const u8,
 
     /// Human-readable description for help text
     description: []const u8 = "",
 
-    /// Whether this positional must be provided
+    /// Whether this argument must be provided
     required: bool = true,
 
     /// Format for display in usage line (e.g., "<version>" or "[version]")
-    pub fn formatUsage(self: Positional, buf: []u8) []const u8 {
+    pub fn formatUsage(self: Argument, buf: []u8) []const u8 {
         var stream = std.io.fixedBufferStream(buf);
         const writer = stream.writer();
 
@@ -82,8 +82,8 @@ pub const FlagOptions = struct {
     default: ?[]const u8 = null,
 };
 
-/// Options for creating a Positional via the fluent API.
-pub const PositionalOptions = struct {
+/// Options for creating an Argument via the fluent API.
+pub const ArgumentOptions = struct {
     name: []const u8,
     description: []const u8 = "",
     required: bool = true,
@@ -124,8 +124,8 @@ test "Flag.formatNames with value" {
     try std.testing.expectEqualStrings("-o, --output <value>", result);
 }
 
-test "Positional.formatUsage required" {
-    const pos: Positional = .{
+test "Argument.formatUsage required" {
+    const pos: Argument = .{
         .name = "version",
         .required = true,
     };
@@ -135,8 +135,8 @@ test "Positional.formatUsage required" {
     try std.testing.expectEqualStrings("<version>", result);
 }
 
-test "Positional.formatUsage optional" {
-    const pos: Positional = .{
+test "Argument.formatUsage optional" {
+    const pos: Argument = .{
         .name = "target",
         .required = false,
     };
