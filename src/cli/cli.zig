@@ -164,7 +164,7 @@ pub const Cli = struct {
         } else {
             // Unknown command
             if (!builtin.is_test) {
-                std.debug.print("error: unknown command: {s}\n\n", .{first});
+                std.debug.print("\x1b[1;31merror:\x1b[0m unknown command: {s}\n\n", .{first});
                 try self.printRootHelp();
             }
             return error.UserError;

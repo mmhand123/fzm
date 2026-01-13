@@ -251,7 +251,8 @@ const builtin = @import("builtin");
 fn printError(comptime fmt: []const u8, args: anytype) void {
     // Suppress error output during tests to avoid polluting test output
     if (builtin.is_test) return;
-    std.debug.print("error: " ++ fmt ++ "\n", args);
+    // Bold red "error:" prefix, then reset formatting for the message
+    std.debug.print("\x1b[1;31merror:\x1b[0m " ++ fmt ++ "\n", args);
 }
 
 test "Parser long flag" {
