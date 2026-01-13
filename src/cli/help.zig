@@ -62,7 +62,7 @@ pub fn printHelp(
     }
 
     // Flags section
-    try writer.print("\nFlags:\n", .{});
+    try writer.print("\nOptions:\n", .{});
     try printFlags(writer, cmd, is_root, config.version != null);
 }
 
