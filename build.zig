@@ -45,4 +45,21 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_exe_tests.step);
+
+    // E2E tests: spawn the actual binary with custom environment
+    const e2e_mod = b.createModule(.{
+        .root_source_file = b.path("src/e2e/e2e.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const e2e_tests = b.addTest(.{
+        .root_module = e2e_mod,
+    });
+
+    const run_e2e_tests = b.addRunArtifact(e2e_tests);
+    run_e2e_tests.step.dependOn(b.getInstallStep()); // Ensure binary is built first
+
+    const e2e_step = b.step("e2e", "Run end-to-end tests");
+    e2e_step.dependOn(&run_e2e_tests.step);
 }
