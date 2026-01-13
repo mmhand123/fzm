@@ -96,3 +96,77 @@ test "getInstalledVersion returns content" {
     try testing.expect(result != null);
     try testing.expectEqualStrings(version_content, result.?);
 }
+
+test "listInstalledVersions returns empty slice for non-existent directory" {
+    const allocator = testing.allocator;
+    const result = try listInstalledVersions(allocator, "/non/existent/path");
+    try testing.expectEqual(0, result.len);
+}
+
+test "listInstalledVersions returns empty slice for empty directory" {
+    var tmp_dir = testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+
+    const allocator = testing.allocator;
+    const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(tmp_path);
+
+    const result = try listInstalledVersions(allocator, tmp_path);
+    defer allocator.free(result);
+
+    try testing.expectEqual(0, result.len);
+}
+
+test "listInstalledVersions returns version directories" {
+    var tmp_dir = testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+
+    try tmp_dir.dir.makeDir("0.13.0");
+    try tmp_dir.dir.makeDir("0.14.0");
+    try tmp_dir.dir.makeDir("master");
+
+    const allocator = testing.allocator;
+    const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(tmp_path);
+
+    const result = try listInstalledVersions(allocator, tmp_path);
+    defer {
+        for (result) |v| allocator.free(v);
+        allocator.free(result);
+    }
+
+    try testing.expectEqual(3, result.len);
+
+    // Sort for deterministic comparison (directory iteration order is not guaranteed)
+    std.mem.sort([]const u8, result, {}, struct {
+        fn lessThan(_: void, a: []const u8, b: []const u8) bool {
+            return std.mem.order(u8, a, b) == .lt;
+        }
+    }.lessThan);
+
+    try testing.expectEqualStrings("0.13.0", result[0]);
+    try testing.expectEqualStrings("0.14.0", result[1]);
+    try testing.expectEqualStrings("master", result[2]);
+}
+
+test "listInstalledVersions ignores files" {
+    var tmp_dir = testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+
+    try tmp_dir.dir.makeDir("0.13.0");
+    const file = try tmp_dir.dir.createFile("not-a-version.txt", .{});
+    file.close();
+
+    const allocator = testing.allocator;
+    const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(tmp_path);
+
+    const result = try listInstalledVersions(allocator, tmp_path);
+    defer {
+        for (result) |v| allocator.free(v);
+        allocator.free(result);
+    }
+
+    try testing.expectEqual(1, result.len);
+    try testing.expectEqualStrings("0.13.0", result[0]);
+}
