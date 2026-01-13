@@ -1,6 +1,5 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const clap = @import("clap");
 const installation = @import("./install/install.zig");
 const list_cmd = @import("./list.zig");
 const logging = @import("./logging.zig");
@@ -12,6 +11,54 @@ pub const std_options: std.Options = .{
     .logFn = logging.logFn,
 };
 
+const Command = enum {
+    help,
+    version,
+    list,
+    install,
+};
+
+fn parseCommand(arg: []const u8) ?Command {
+    const commands = .{
+        .{ "help", .help },
+        .{ "-h", .help },
+        .{ "--help", .help },
+        .{ "version", .version },
+        .{ "-v", .version },
+        .{ "--version", .version },
+        .{ "ls", .list },
+        .{ "list", .list },
+        .{ "--list", .list },
+        .{ "install", .install },
+        .{ "-i", .install },
+        .{ "--install", .install },
+    };
+    inline for (commands) |entry| {
+        if (std.mem.eql(u8, arg, entry[0])) return entry[1];
+    }
+    return null;
+}
+
+fn printHelp() void {
+    const help_text =
+        \\fzm v{s} - Zig version manager
+        \\
+        \\Usage: fzm <command> [arguments]
+        \\
+        \\Commands:
+        \\  help, -h, --help           Display this help and exit
+        \\  version, -v, --version     Print version information and exit
+        \\  ls, list, --list           List all installed versions
+        \\  install, -i, --install     Install a Zig version (e.g., "master" or "0.13.0")
+        \\
+    ;
+    std.debug.print(help_text, .{VERSION});
+}
+
+fn printError(comptime fmt: []const u8, args: anytype) void {
+    std.debug.print("error: " ++ fmt ++ "\n\n", args);
+}
+
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -19,31 +66,32 @@ pub fn main() !void {
     try logging.setLogLevel();
 
     const allocator = arena.allocator();
+    const args = try std.process.argsAlloc(allocator);
 
-    const params = comptime clap.parseParamsComptime(
-        \\-h, --help      Display this help and exit.
-        \\-v, --version   Print version information and exit.
-        \\-i, --install <str>   Install a new Zig version. Can be a specific version or "master".
-        \\-l, --list      List all installed versions.
-    );
-
-    var diag: clap.Diagnostic = .{};
-    const res = clap.parse(clap.Help, &params, clap.parsers.default, .{
-        .diagnostic = &diag,
-        .allocator = allocator,
-    }) catch |err| {
-        try diag.reportToFile(.stderr(), err);
+    // No arguments provided - show help
+    if (args.len < 2) {
+        printHelp();
         return;
+    }
+
+    const command = parseCommand(args[1]) orelse {
+        printError("unknown command: {s}", .{args[1]});
+        printHelp();
+        std.process.exit(1);
     };
 
-    if (res.args.help != 0) {
-        return clap.helpToFile(.stderr(), clap.Help, &params, .{});
-    } else if (res.args.version != 0) {
-        std.debug.print("fzm v{s}\n", .{VERSION});
-    } else if (res.args.install) |version| {
-        try installation.install(allocator, version);
-    } else if (res.args.list != 0) {
-        try list_cmd.list(allocator);
+    switch (command) {
+        .help => printHelp(),
+        .version => std.debug.print("fzm v{s}\n", .{VERSION}),
+        .list => try list_cmd.list(allocator),
+        .install => {
+            if (args.len < 3) {
+                printError("install requires a version argument", .{});
+                printHelp();
+                std.process.exit(1);
+            }
+            try installation.install(allocator, args[2]);
+        },
     }
 }
 
