@@ -45,4 +45,5 @@ pub fn main() !void {
 
 test {
     _ = @import("install/install.zig");
+    _ = @import("versions.zig");
 }
