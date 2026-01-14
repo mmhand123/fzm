@@ -33,6 +33,10 @@ pub fn install(allocator: std.mem.Allocator, target_version: []const u8) !void {
             errors.prettyWarning("zig {s} is already installed, skipping", .{installed_version}) catch {};
             return;
         }
+
+        if (std.mem.eql(u8, target_version, "master")) {
+            log.info("updating master from {s} to {s}", .{ installed_version, full_version });
+        }
     }
 
     const data_dir = dirs.getDataDir(allocator) catch {
