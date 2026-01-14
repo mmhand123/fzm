@@ -39,19 +39,50 @@ pub fn install(allocator: std.mem.Allocator, target_version: []const u8) !void {
         }
     }
 
-    const data_dir = dirs.getDataDir(allocator) catch {
-        return errors.prettyError("error: failed to get data directory\n", .{}) catch {};
+    const tarball_path = tarball.downloadTarball(allocator, version_info.value) catch |err| {
+        log.err("failed to download tarball: {}", .{err});
+        return errors.prettyError("error: failed to download tarball\n", .{}) catch {};
     };
 
-    try tarball.downloadTarball(allocator, version_info.value);
+    log.debug("downloaded tarball to {s}", .{tarball_path});
 
-    log.debug("version_info: {f}", .{std.json.fmt(version_info.value, .{ .whitespace = .indent_2 })});
+    const version_dir_path = versions.getVersionsDir(allocator) catch {
+        return errors.prettyError("error: failed to get versions directory\n", .{}) catch {};
+    };
 
-    log.debug("installing {s}", .{target_version});
-    log.debug("exe_dir: {s}", .{data_dir});
-    if (version_info.value.version) |v| {
-        log.debug("full version: {s}", .{v});
-    }
+    const dest_path = std.fs.path.join(allocator, &.{ version_dir_path, target_version }) catch {
+        return errors.prettyError("error: failed to create version path\n", .{}) catch {};
+    };
+
+    log.debug("installing to {s}", .{dest_path});
+
+    // Create version directory (and parent directories if needed)
+    std.fs.cwd().makePath(dest_path) catch |err| {
+        log.err("failed to create version directory: {}", .{err});
+        return errors.prettyError("error: failed to create version directory\n", .{}) catch {};
+    };
+
+    var dest_dir = std.fs.openDirAbsolute(dest_path, .{}) catch {
+        return errors.prettyError("error: failed to open version directory\n", .{}) catch {};
+    };
+
+    log.debug("extracting to {s}", .{dest_path});
+
+    tarball.extractTarball(allocator, tarball_path, dest_dir) catch |err| {
+        log.err("failed to extract tarball: {}", .{err});
+        return errors.prettyError("error: failed to extract tarball\n", .{}) catch {};
+    };
+
+    const version_file = dest_dir.createFile(versions.VERSION_FILE_NAME, .{}) catch {
+        return errors.prettyError("error: failed to create version file\n", .{}) catch {};
+    };
+
+    log.debug("writing version file", .{});
+    version_file.writeAll(full_version) catch {
+        return errors.prettyError("error: failed to write version file\n", .{}) catch {};
+    };
+
+    log.info("installed zig {s}", .{full_version});
 }
 
 test {

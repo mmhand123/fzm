@@ -5,6 +5,11 @@ const InstallError = installErrors.InstallError;
 const http = std.http;
 const VERSION_INDEX_URL = "https://ziglang.org/download/index.json";
 
+/// Returns the version index URL, allowing override via FZM_CDN_URL for testing.
+fn getVersionIndexUrl() []const u8 {
+    return std.posix.getenv("FZM_CDN_URL") orelse VERSION_INDEX_URL;
+}
+
 /// Download artifact info (tarball URL, checksum, size).
 pub const Artifact = struct {
     tarball: []const u8,
@@ -87,7 +92,7 @@ pub fn fetchVersionInfo(allocator: std.mem.Allocator, version: []const u8) Insta
 
     var response_body = std.io.Writer.Allocating.init(allocator);
     const result = client.fetch(.{
-        .location = .{ .url = VERSION_INDEX_URL },
+        .location = .{ .url = getVersionIndexUrl() },
         .response_writer = &response_body.writer,
     }) catch return InstallError.HttpRequestFailed;
 

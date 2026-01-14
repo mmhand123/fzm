@@ -7,4 +7,5 @@
 
 test {
     _ = @import("list_test.zig");
+    _ = @import("install_test.zig");
 }

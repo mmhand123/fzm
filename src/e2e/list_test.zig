@@ -1,5 +1,3 @@
-//! End-to-end tests for the list command.
-
 const std = @import("std");
 const testing = std.testing;
 const runner = @import("runner.zig");

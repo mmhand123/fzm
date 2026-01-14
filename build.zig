@@ -46,12 +46,20 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_exe_tests.step);
 
+    // Shared platform module for e2e tests
+    const platform_mod = b.createModule(.{
+        .root_source_file = b.path("src/platform.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // E2E tests: spawn the actual binary with custom environment
     const e2e_mod = b.createModule(.{
         .root_source_file = b.path("src/e2e/e2e.zig"),
         .target = target,
         .optimize = optimize,
     });
+    e2e_mod.addImport("platform", platform_mod);
 
     const e2e_tests = b.addTest(.{
         .root_module = e2e_mod,
