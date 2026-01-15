@@ -3,6 +3,7 @@ const cli = @import("cli/cli.zig");
 const installation = @import("commands/install/install.zig");
 const list_cmd = @import("commands/list.zig");
 const logging = @import("logging.zig");
+const env = @import("commands/env.zig");
 
 const VERSION = "0.0.1";
 
@@ -43,6 +44,12 @@ pub fn main() !void {
         .action = listAction,
     });
 
+    _ = app.addCommand(.{
+        .name = "env",
+        .description = "Set up environment for fzm",
+        .action = envAction,
+    });
+
     app.run() catch |err| switch (err) {
         error.UserError => std.process.exit(1),
         else => return err,
@@ -56,6 +63,10 @@ fn installAction(ctx: cli.Context) !void {
 
 fn listAction(ctx: cli.Context) !void {
     try list_cmd.list(ctx.allocator);
+}
+
+fn envAction(ctx: cli.Context) !void {
+    try env.env(ctx.allocator);
 }
 
 test {
