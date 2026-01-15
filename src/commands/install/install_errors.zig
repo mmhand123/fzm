@@ -1,5 +1,5 @@
 const std = @import("std");
-const errors = @import("../errors.zig");
+const errors = @import("../../errors.zig");
 
 pub const InstallError = error{
     /// Version string is not "master" or valid semver (x.x.x)

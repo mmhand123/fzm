@@ -5,9 +5,9 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const dirs = @import("../dirs.zig");
-const errors = @import("../errors.zig");
-const versions = @import("../versions.zig");
+const dirs = @import("../../dirs.zig");
+const errors = @import("../../errors.zig");
+const versions = @import("../../versions.zig");
 const version = @import("version.zig");
 const installErrors = @import("install_errors.zig");
 const tarball = @import("tarball.zig");

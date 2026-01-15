@@ -1,7 +1,7 @@
 //! List command for displaying installed Zig versions.
 
 const std = @import("std");
-const versions = @import("versions.zig");
+const versions = @import("../versions.zig");
 
 /// Soft teal color for output.
 const teal = "\x1b[38;2;94;186;187m";

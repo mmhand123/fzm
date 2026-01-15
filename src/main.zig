@@ -1,7 +1,7 @@
 const std = @import("std");
 const cli = @import("cli/cli.zig");
-const installation = @import("install/install.zig");
-const list_cmd = @import("list.zig");
+const installation = @import("commands/install/install.zig");
+const list_cmd = @import("commands/list.zig");
 const logging = @import("logging.zig");
 
 const VERSION = "0.0.1";
@@ -61,7 +61,7 @@ fn listAction(ctx: cli.Context) !void {
 test {
     _ = @import("cli/cli.zig");
     _ = @import("dirs.zig");
-    _ = @import("install/install.zig");
-    _ = @import("list.zig");
+    _ = @import("commands/install/install.zig");
+    _ = @import("commands/list.zig");
     _ = @import("versions.zig");
 }

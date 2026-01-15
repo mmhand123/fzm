@@ -5,9 +5,9 @@ const installErrors = @import("install_errors.zig");
 const InstallError = installErrors.InstallError;
 const log = std.log.scoped(.install);
 const version = @import("version.zig");
-const dirs = @import("../dirs.zig");
-const fetching = @import("../http/fetching.zig");
-const platform = @import("../platform.zig");
+const dirs = @import("../../dirs.zig");
+const fetching = @import("../../http/fetching.zig");
+const platform = @import("../../platform.zig");
 const Fetcher = fetching.Fetcher;
 const FetchResult = fetching.FetchResult;
 const FetchError = fetching.FetchError;
@@ -144,7 +144,7 @@ test "extractTarball extracts files with root component stripped" {
     var tmp = testing.tmpDir(.{});
     defer tmp.cleanup();
 
-    const tarball_bytes = @embedFile("../e2e/fixtures/test.tar.xz");
+    const tarball_bytes = @embedFile("../../e2e/fixtures/test.tar.xz");
     try tmp.dir.writeFile(.{ .sub_path = "test.tar.xz", .data = tarball_bytes });
 
     const tarball_path = try tmp.dir.realpathAlloc(testing.allocator, "test.tar.xz");
