@@ -10,7 +10,7 @@ const Self = @This();
 allocator: std.mem.Allocator,
 server: std.net.Server,
 port: u16,
-responses: std.ArrayListUnmanaged(Response),
+responses: std.ArrayList(Response),
 
 pub const Response = struct {
     status: []const u8,

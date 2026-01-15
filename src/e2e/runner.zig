@@ -21,7 +21,7 @@ pub const RunResult = struct {
 
 /// Runs the fzm binary with the given arguments and environment.
 pub fn run(allocator: std.mem.Allocator, args: []const []const u8, env: *const std.process.EnvMap) !RunResult {
-    var argv: std.ArrayListUnmanaged([]const u8) = .empty;
+    var argv: std.ArrayList([]const u8) = .empty;
     defer argv.deinit(allocator);
 
     try argv.append(allocator, FZM_BINARY);

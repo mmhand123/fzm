@@ -42,7 +42,7 @@ pub const Parser = struct {
     // Accumulated results
     flag_values: std.StringHashMapUnmanaged([]const u8),
     flag_present: std.StringHashMapUnmanaged(void),
-    arg_values: std.ArrayListUnmanaged([]const u8),
+    arg_values: std.ArrayList([]const u8),
     arg_map: std.StringHashMapUnmanaged([]const u8),
 
     pub fn init(allocator: std.mem.Allocator, args: []const []const u8) Parser {

@@ -51,7 +51,7 @@ fn listInstalledVersionsFromDir(allocator: std.mem.Allocator, versions_dir: []co
     };
     defer dir.close();
 
-    var list: std.ArrayListUnmanaged([]const u8) = .empty;
+    var list: std.ArrayList([]const u8) = .empty;
 
     var iter = dir.iterate();
     while (try iter.next()) |entry| {

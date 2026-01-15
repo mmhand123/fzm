@@ -60,13 +60,13 @@ pub const Command = struct {
     action: ?ActionFn = null,
 
     /// Flags specific to this command
-    flags: std.ArrayListUnmanaged(Flag) = .empty,
+    flags: std.ArrayList(Flag) = .empty,
 
     /// Positional arguments for this command
-    args: std.ArrayListUnmanaged(Argument) = .empty,
+    args: std.ArrayList(Argument) = .empty,
 
     /// Subcommands nested under this command
-    subcommands: std.ArrayListUnmanaged(*Command) = .empty,
+    subcommands: std.ArrayList(*Command) = .empty,
 
     /// Parent command (null for top-level commands)
     parent: ?*Command = null,
