@@ -3,6 +3,7 @@
 //! automatically load the correct version of Zig when changing directories.
 
 const std = @import("std");
+const errors = @import("../errors.zig");
 const log = std.log.scoped(.env);
 
 const Shell = enum {
@@ -16,13 +17,13 @@ const EnvError = error{
 
 pub fn env(allocator: std.mem.Allocator) !void {
     const shell_env = std.process.getEnvVarOwned(allocator, "SHELL") catch {
-        std.debug.print("error: SHELL environment variable not set\n", .{});
+        try errors.prettyError("SHELL environment variable not set\n", .{});
         return;
     };
     const last_slash_idx = std.mem.lastIndexOf(u8, shell_env, "/").?;
     const shell_str = shell_env[last_slash_idx + 1 ..];
     const shell = std.meta.stringToEnum(Shell, shell_str) orelse {
-        log.err("unsupported shell: {s}", .{shell_str});
+        try errors.prettyError("unsupported shell: {s}\n", .{shell_str});
         return EnvError.UnsupportedShell;
     };
 
