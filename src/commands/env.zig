@@ -52,7 +52,11 @@ fn setupZsh(_: std.mem.Allocator) !void {
         \\
         \\fzm_autoload
     ;
-    const stdout_file = std.fs.File.stdout();
-    try stdout_file.writeAll(script);
-    try stdout_file.writeAll("\n");
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    const stdout = &stdout_writer.interface;
+
+    try stdout.writeAll(script);
+    try stdout.writeAll("\n");
+    try stdout.flush();
 }
