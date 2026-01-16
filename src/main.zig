@@ -21,7 +21,6 @@ pub fn main() !void {
 
     try logging.setLogLevel();
 
-    // Load persistent state
     var app_state = try state.State.load(allocator);
     defer app_state.deinit();
 
