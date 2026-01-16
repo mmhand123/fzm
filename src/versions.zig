@@ -63,6 +63,58 @@ fn listInstalledVersionsFromDir(allocator: std.mem.Allocator, versions_dir: []co
     return try list.toOwnedSlice(allocator);
 }
 
+/// Finds the best matching installed version for a given minimum version requirement.
+/// Uses "newest same minor" strategy: finds the highest installed version with the same
+/// major.minor as the minimum, that is >= the minimum version.
+/// Returns null if no suitable version is installed.
+/// Caller owns the returned string (returns the directory name, e.g., "master" or "0.15.2").
+pub fn findBestMatchingVersion(allocator: std.mem.Allocator, min_version_str: []const u8) !?[]const u8 {
+    const min_semver = std.SemanticVersion.parse(min_version_str) catch return null;
+
+    const versions_dir = try getVersionsDir(allocator);
+    defer allocator.free(versions_dir);
+
+    return findBestMatchingVersionFromDir(allocator, versions_dir, min_semver);
+}
+
+fn findBestMatchingVersionFromDir(allocator: std.mem.Allocator, versions_dir: []const u8, min_semver: std.SemanticVersion) !?[]const u8 {
+    var dir = std.fs.openDirAbsolute(versions_dir, .{ .iterate = true }) catch |err| switch (err) {
+        error.FileNotFound => return null,
+        else => return err,
+    };
+    defer dir.close();
+
+    var best: ?std.SemanticVersion = null;
+    var best_dir_name: ?[]const u8 = null;
+
+    var iter = dir.iterate();
+    while (try iter.next()) |entry| {
+        if (entry.kind != .directory) continue;
+
+        // Get the actual version - either from .fzm-version file or directory name
+        const actual_version = try getInstalledVersionFromDir(allocator, versions_dir, entry.name) orelse entry.name;
+        const owned = actual_version.ptr != entry.name.ptr;
+        defer if (owned) allocator.free(actual_version);
+
+        const ver = std.SemanticVersion.parse(actual_version) catch continue;
+
+        // Must match major.minor
+        if (ver.major != min_semver.major or ver.minor != min_semver.minor) continue;
+
+        // Must be >= minimum
+        if (ver.order(min_semver) == .lt) continue;
+
+        // Pick the highest
+        if (best == null or ver.order(best.?) == .gt) {
+            best = ver;
+            if (best_dir_name) |old| allocator.free(old);
+            best_dir_name = try allocator.dupe(u8, entry.name);
+        }
+    }
+
+    return best_dir_name;
+}
+
 // Tests
 
 const testing = std.testing;
@@ -153,6 +205,68 @@ test "listInstalledVersionsFromDir returns version directories" {
     try testing.expectEqualStrings("0.13.0", result[0]);
     try testing.expectEqualStrings("0.14.0", result[1]);
     try testing.expectEqualStrings("master", result[2]);
+}
+
+test "findBestMatchingVersionFromDir matches master via .fzm-version" {
+    var tmp_dir = testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+
+    // Create a "master" directory with actual version in .fzm-version
+    try tmp_dir.dir.makeDir("master");
+    const file = try tmp_dir.dir.createFile("master/" ++ VERSION_FILE_NAME, .{});
+    try file.writeAll("0.16.0-dev.2135+7c0b42ba0");
+    file.close();
+
+    const allocator = testing.allocator;
+    const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(tmp_path);
+
+    // Should match master when looking for 0.16.x
+    const result = try findBestMatchingVersionFromDir(
+        allocator,
+        tmp_path,
+        std.SemanticVersion{ .major = 0, .minor = 16, .patch = 0, .pre = "dev.1" },
+    );
+    defer if (result) |r| allocator.free(r);
+
+    try testing.expect(result != null);
+    try testing.expectEqualStrings("master", result.?);
+}
+
+test "findBestMatchingVersionFromDir prefers higher dev version" {
+    var tmp_dir = testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+
+    // Create master with dev version
+    try tmp_dir.dir.makeDir("master");
+    {
+        const file = try tmp_dir.dir.createFile("master/" ++ VERSION_FILE_NAME, .{});
+        try file.writeAll("0.16.0-dev.2135+7c0b42ba0");
+        file.close();
+    }
+
+    // Create a release version
+    try tmp_dir.dir.makeDir("0.16.0");
+    {
+        const file = try tmp_dir.dir.createFile("0.16.0/" ++ VERSION_FILE_NAME, .{});
+        try file.writeAll("0.16.0");
+        file.close();
+    }
+
+    const allocator = testing.allocator;
+    const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(tmp_path);
+
+    // Should prefer 0.16.0 release over 0.16.0-dev (release is higher per semver)
+    const result = try findBestMatchingVersionFromDir(
+        allocator,
+        tmp_path,
+        std.SemanticVersion{ .major = 0, .minor = 16, .patch = 0, .pre = "dev.1" },
+    );
+    defer if (result) |r| allocator.free(r);
+
+    try testing.expect(result != null);
+    try testing.expectEqualStrings("0.16.0", result.?);
 }
 
 test "listInstalledVersionsFromDir ignores files" {

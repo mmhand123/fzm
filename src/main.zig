@@ -65,7 +65,7 @@ pub fn main() !void {
     }).addArgument(.{
         .name = "version",
         .description = "Version to use (e.g., master, 0.13.0)",
-        .required = true,
+        .required = false,
     });
 
     app.run() catch |err| switch (err) {
@@ -90,7 +90,7 @@ fn envAction(ctx: cli.Context) !void {
 }
 
 fn useAction(ctx: cli.Context) !void {
-    const version = ctx.arg("version").?;
+    const version = ctx.arg("version");
     const app_state = ctx.getUserData(state.State).?;
     try use_cmd.use(ctx.allocator, app_state, version);
 }
@@ -103,4 +103,5 @@ test {
     _ = @import("commands/use.zig");
     _ = @import("state.zig");
     _ = @import("versions.zig");
+    _ = @import("zon.zig");
 }
