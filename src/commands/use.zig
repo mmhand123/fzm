@@ -45,19 +45,18 @@ fn autoswitchVersion(allocator: std.mem.Allocator) !void {
         log.warn("failed to read build.zig.zon: {}", .{err});
         return;
     } orelse {
-        try errors.prettyError("no build.zig.zon found in current directory\n", .{});
-        return error.UserError;
+        // This should never happen, because we only setup autoswitching if we find a build.zig.zon
+        // however, we can just stick with the default
+        return;
     };
 
     const min_version = build_zon.data.minimum_zig_version orelse {
-        try errors.prettyError("build.zig.zon does not specify minimum_zig_version\n", .{});
-        return error.UserError;
+        // This is fine - we'll just use the default version and won't be able to autoswitch
+        return;
     };
 
     const best_match = try versions.findBestMatchingVersion(allocator, min_version) orelse {
-        try errors.prettyError("no installed version matches minimum_zig_version '{s}'\n", .{min_version});
-        try errors.prettyError("hint: install a compatible version with 'fzm install {s}'\n", .{min_version});
-        return error.UserError;
+        return;
     };
 
     log.debug("minimum_zig_version: {s}, best match: {s}", .{ min_version, best_match });
