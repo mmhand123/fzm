@@ -7,6 +7,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const dirs = @import("../../dirs.zig");
 const errors = @import("../../errors.zig");
+const Progress = @import("../../progress.zig").Progress;
 const state = @import("../../state.zig");
 const versions = @import("../../versions.zig");
 const version = @import("version.zig");
@@ -18,6 +19,10 @@ const Uri = std.Uri;
 const log = std.log.scoped(.install);
 
 pub fn install(allocator: std.mem.Allocator, app_state: *state.State, target_version: []const u8) !void {
+    var progress = Progress.init(std.fs.File.stderr());
+
+    progress.status("Fetching version info...", .{});
+
     version.validateVersion(target_version) catch |err| {
         return installErrors.printInstallError(err, target_version);
     };
@@ -40,7 +45,7 @@ pub fn install(allocator: std.mem.Allocator, app_state: *state.State, target_ver
         }
     }
 
-    const tarball_path = tarball.downloadTarball(allocator, version_info.value) catch |err| {
+    const tarball_path = tarball.downloadTarball(allocator, version_info.value, &progress) catch |err| {
         log.err("failed to download tarball: {}", .{err});
         return errors.prettyError("failed to download tarball\n", .{}) catch {};
     };
@@ -69,6 +74,8 @@ pub fn install(allocator: std.mem.Allocator, app_state: *state.State, target_ver
 
     log.debug("extracting to {s}", .{dest_path});
 
+    progress.status("Extracting...", .{});
+
     tarball.extractTarball(allocator, tarball_path, dest_dir) catch |err| {
         log.err("failed to extract tarball: {}", .{err});
         return errors.prettyError("failed to extract tarball\n", .{}) catch {};
@@ -83,7 +90,7 @@ pub fn install(allocator: std.mem.Allocator, app_state: *state.State, target_ver
         return errors.prettyError("failed to write version file\n", .{}) catch {};
     };
 
-    log.info("installed zig {s}", .{full_version});
+    progress.status("Installed zig {s}", .{full_version});
 
     if (app_state.in_use == null) {
         app_state.setInUse(target_version) catch {

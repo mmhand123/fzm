@@ -8,12 +8,17 @@ const version = @import("version.zig");
 const dirs = @import("../../dirs.zig");
 const fetching = @import("../../http/fetching.zig");
 const platform = @import("../../platform.zig");
+const Progress = @import("../../progress.zig").Progress;
 const Fetcher = fetching.Fetcher;
 const FetchResult = fetching.FetchResult;
 const FetchError = fetching.FetchError;
 
 /// Downloads the tarball for the current platform and returns the path to the cached file.
-pub fn downloadTarball(allocator: std.mem.Allocator, version_info: version.VersionInfo) ![]const u8 {
+pub fn downloadTarball(
+    allocator: std.mem.Allocator,
+    version_info: version.VersionInfo,
+    progress: ?*Progress,
+) ![]const u8 {
     const cache_dir_path = try dirs.getCacheDir(allocator);
     defer allocator.free(cache_dir_path);
 
@@ -36,16 +41,47 @@ pub fn downloadTarball(allocator: std.mem.Allocator, version_info: version.Versi
         .response_storage = std.io.Writer.Allocating.init(allocator),
     };
 
-    try downloadTarballWithFetch(artifact, cache_dir, &fetcher);
-
     const filename = std.fs.path.basename(artifact.tarball);
+    if (progress) |p| p.status("Downloading {s}...", .{filename});
+
+    try downloadTarballWithFetch(artifact, cache_dir, &fetcher, progress);
+
+    if (progress) |p| p.downloadComplete();
+
     return std.fs.path.join(allocator, &.{ cache_dir_path, filename });
 }
 
 /// Extracts a .tar.xz tarball to the destination directory.
 /// Strips the root component (e.g., "zig-linux-x86_64-0.13.0/") so files
 /// are extracted directly into dest_dir.
+///
+/// Uses system `tar` for speed (native xz libs are ~10x faster than pure Zig).
+/// Falls back to pure Zig implementation if system tar is unavailable.
 pub fn extractTarball(allocator: std.mem.Allocator, tarball_path: []const u8, dest_dir: std.fs.Dir) !void {
+    const dest_path = dest_dir.realpathAlloc(allocator, ".") catch
+        return extractTarballPureZig(allocator, tarball_path, dest_dir);
+
+    defer allocator.free(dest_path);
+
+    // Try system tar first (much faster due to native xz libs)
+    var child = std.process.Child.init(
+        &.{ "tar", "xf", tarball_path, "--strip-components=1", "-C", dest_path },
+        allocator,
+    );
+    child.stdout_behavior = .Close;
+    child.stderr_behavior = .Close;
+
+    child.spawn() catch return extractTarballPureZig(allocator, tarball_path, dest_dir);
+
+    const term = child.wait() catch return extractTarballPureZig(allocator, tarball_path, dest_dir);
+
+    if (term.Exited != 0) {
+        return extractTarballPureZig(allocator, tarball_path, dest_dir);
+    }
+}
+
+/// Pure Zig fallback for extraction (slower but portable).
+fn extractTarballPureZig(allocator: std.mem.Allocator, tarball_path: []const u8, dest_dir: std.fs.Dir) !void {
     const file = try std.fs.openFileAbsolute(tarball_path, .{});
     defer file.close();
 
@@ -69,9 +105,10 @@ fn downloadTarballWithFetch(
     artifact: version.Artifact,
     cache_dir: std.fs.Dir,
     fetcher: anytype,
+    progress: ?*Progress,
 ) InstallError!void {
     log.debug("downloading artifact: {f}", .{std.json.fmt(artifact, .{ .whitespace = .indent_2 })});
-    const result = fetcher.fetch(artifact.tarball) catch return InstallError.HttpRequestFailed;
+    const result = fetcher.fetchWithProgress(artifact.tarball, progress) catch return InstallError.HttpRequestFailed;
     if (result.status != .ok) return InstallError.ArtifactDownloadFailed;
 
     const filename = std.fs.path.basename(artifact.tarball);
@@ -102,6 +139,7 @@ test "downloadTarballWithFetch returns HttpRequestFailed on fetch error" {
         testArtifact("https://example.com/zig-0.13.0.tar.xz"),
         tmp.dir,
         &fetcher,
+        null,
     );
 
     try testing.expectError(InstallError.HttpRequestFailed, result);
@@ -116,6 +154,7 @@ test "downloadTarballWithFetch returns ArtifactDownloadFailed on non-200" {
         testArtifact("https://example.com/zig-0.13.0.tar.xz"),
         tmp.dir,
         &fetcher,
+        null,
     );
 
     try testing.expectError(InstallError.ArtifactDownloadFailed, result);
@@ -132,6 +171,7 @@ test "downloadTarballWithFetch writes file with correct name and content" {
         testArtifact("https://example.com/zig-0.13.0.tar.xz"),
         tmp.dir,
         &fetcher,
+        null,
     );
 
     const written = try tmp.dir.readFileAlloc(testing.allocator, "zig-0.13.0.tar.xz", 1024);
