@@ -67,6 +67,14 @@ pub const Cli = struct {
     /// Root command containing all subcommands
     root: Command,
 
+    /// User-provided data pointer passed to all command contexts
+    user_data: ?*anyopaque = null,
+
+    /// Set user data that will be passed to all command contexts.
+    pub fn setUserData(self: *Cli, ptr: anytype) void {
+        self.user_data = @ptrCast(ptr);
+    }
+
     /// Create a new CLI application.
     pub fn init(allocator: std.mem.Allocator, opts: CliOptions) Cli {
         return .{
@@ -143,7 +151,7 @@ pub const Cli = struct {
             var p = Parser.init(self.allocator, args);
             defer p.deinit();
 
-            const result = p.parse(&self.root) catch {
+            var result = p.parse(&self.root) catch {
                 return error.UserError;
             };
 
@@ -153,6 +161,9 @@ pub const Cli = struct {
                 try self.printCommandHelpWithRoot(result.command, is_root);
                 return;
             }
+
+            // Inject user data into context
+            result.context.user_data = self.user_data;
 
             // Execute the command action
             if (result.command.action) |action| {

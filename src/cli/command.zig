@@ -19,6 +19,15 @@ pub const Context = struct {
     arg_values: std.StringHashMapUnmanaged([]const u8),
     raw_args: []const []const u8,
 
+    /// User-provided data pointer (set via Cli.setUserData)
+    user_data: ?*anyopaque = null,
+
+    /// Get typed user data. Returns null if not set or wrong type.
+    pub fn getUserData(self: Context, comptime T: type) ?*T {
+        const ptr = self.user_data orelse return null;
+        return @ptrCast(@alignCast(ptr));
+    }
+
     /// Check if a boolean flag is present.
     pub fn flag(self: Context, name: []const u8) bool {
         return self.flag_present.contains(name);

@@ -4,7 +4,10 @@
 
 const std = @import("std");
 const errors = @import("../errors.zig");
+const state = @import("../state.zig");
 const tmp = @import("../tmp.zig");
+const versions = @import("../versions.zig");
+const linking = @import("../linking.zig");
 const log = std.log.scoped(.env);
 
 const Shell = enum {
@@ -16,7 +19,7 @@ const EnvError = error{
     UnsupportedShell,
 };
 
-pub fn env(allocator: std.mem.Allocator) !void {
+pub fn env(allocator: std.mem.Allocator, app_state: *const state.State) !void {
     // Note: avoid log.debug here since output is meant to be eval'd by the shell
     const shell_env = std.process.getEnvVarOwned(allocator, "SHELL") catch {
         try errors.prettyError("SHELL environment variable not set\n", .{});
@@ -29,15 +32,20 @@ pub fn env(allocator: std.mem.Allocator) !void {
         return EnvError.UnsupportedShell;
     };
 
-    const tmp_dir = try tmp.makeTempDir(allocator);
-    // TODO: symlink to the correct version of zig
-    const path_update = std.fmt.allocPrint(allocator, "EXPORT PATH={s}:$PATH\n", .{tmp_dir});
+    const tmp_result = try tmp.makeTempDir(allocator);
+    const tmp_dir = tmp_result.path;
+
+    try linking.createZigSymlink(allocator, app_state, tmp_dir);
+
+    const path_update = try std.fmt.allocPrint(allocator, "export PATH={s}:$PATH\n", .{tmp_dir});
+    const path_env = try std.fmt.allocPrint(allocator, "export FZM_TMP_PATH={s}\n", .{tmp_dir});
 
     var stdout_buffer: [1024]u8 = undefined;
     var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
     const stdout = &stdout_writer.interface;
 
     try stdout.writeAll(path_update);
+    try stdout.writeAll(path_env);
 
     switch (shell) {
         .bash => try autoloadBash(allocator, stdout),
