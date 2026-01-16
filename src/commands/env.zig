@@ -35,7 +35,9 @@ pub fn env(allocator: std.mem.Allocator, app_state: *const state.State) !void {
     const tmp_result = try tmp.makeTempDir(allocator);
     const tmp_dir = tmp_result.path;
 
-    try linking.createZigSymlink(allocator, app_state, tmp_dir);
+    if (app_state.in_use) |version_in_use| {
+        try linking.createZigSymlink(allocator, version_in_use, tmp_dir);
+    }
 
     const path_update = try std.fmt.allocPrint(allocator, "export PATH={s}:$PATH\n", .{tmp_dir});
     const path_env = try std.fmt.allocPrint(allocator, "export FZM_TMP_PATH={s}\n", .{tmp_dir});

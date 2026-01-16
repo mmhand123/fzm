@@ -3,15 +3,11 @@ const state = @import("state.zig");
 const versions = @import("versions.zig");
 const log = std.log.scoped(.linking);
 
-pub fn createZigSymlink(allocator: std.mem.Allocator, app_state: *const state.State, tmp_dir: []const u8) !void {
-    const in_use = app_state.in_use orelse {
-        return; // No version set yet
-    };
-
+pub fn createZigSymlink(allocator: std.mem.Allocator, version_in_use: []const u8, tmp_dir: []const u8) !void {
     const versions_dir = try versions.getVersionsDir(allocator);
     defer allocator.free(versions_dir);
 
-    const zig_path = try std.fs.path.join(allocator, &.{ versions_dir, in_use, "zig" });
+    const zig_path = try std.fs.path.join(allocator, &.{ versions_dir, version_in_use, "zig" });
     defer allocator.free(zig_path);
 
     const symlink_path = try std.fs.path.join(allocator, &.{ tmp_dir, "zig" });
