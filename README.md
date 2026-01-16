@@ -37,3 +37,8 @@ fzm install 0.15.2 # or master, 0.15.0, etc.
 ```sh
 fzm use 0.15.2 # or master, 0.15.0, etc.
 ```
+
+### Automatically switching versions
+
+Ensure your project has a `build.zig.zon` that specifies a `minimum_zig_version`. `fzm` will then use this to automatically switch to the highest version you have installed
+that matches when you cd into the project.
