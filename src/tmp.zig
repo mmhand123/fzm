@@ -15,7 +15,7 @@ pub fn makeTempDir(allocator: std.mem.Allocator) !struct { dir: std.fs.Dir, path
         else => 0,
     };
     var buf: [64]u8 = undefined;
-    const sub_path = std.fmt.bufPrint(&buf, "fzm-{d}-{s}", .{ timestamp, pid }) catch unreachable;
+    const sub_path = std.fmt.bufPrint(&buf, "fzm-{d}-{d}", .{ timestamp, pid }) catch unreachable;
 
     var tmp_dir = try std.fs.openDirAbsolute(tmp_dir_path, .{});
     defer tmp_dir.close();
