@@ -7,7 +7,7 @@ const logging = @import("logging.zig");
 const env_cmd = @import("commands/env.zig");
 const state = @import("state.zig");
 
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 
 pub const std_options: std.Options = .{
     .log_level = .debug,
@@ -70,6 +70,7 @@ pub fn main() !void {
     _ = app.addCommand(.{
         .name = "uninstall",
         .description = "Uninstall a Zig version",
+        .aliases = &.{"u"},
         .action = uninstallAction,
     }).addArgument(.{
         .name = "version",
