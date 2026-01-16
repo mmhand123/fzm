@@ -14,6 +14,9 @@ pub fn prettyError(comptime fmt: []const u8, args: anytype) !void {
     try tty.setColor(&stderr.interface, .reset);
 
     try stderr.interface.print(" " ++ fmt ++ "\n", args);
+
+    try stderr.interface.flush();
+    std.process.exit(1);
 }
 
 /// Prints a pretty warning message to stderr with bold yellow "warning:" prefix.
@@ -30,4 +33,5 @@ pub fn prettyWarning(comptime fmt: []const u8, args: anytype) !void {
     try tty.setColor(&stderr.interface, .reset);
 
     try stderr.interface.print(" " ++ fmt ++ "\n", args);
+    try stderr.interface.flush();
 }
