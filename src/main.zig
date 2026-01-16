@@ -81,7 +81,8 @@ fn installAction(ctx: cli.Context) !void {
 }
 
 fn listAction(ctx: cli.Context) !void {
-    try list_cmd.list(ctx.allocator);
+    const app_state = ctx.getUserData(state.State).?;
+    try list_cmd.list(ctx.allocator, app_state);
 }
 
 fn envAction(ctx: cli.Context) !void {

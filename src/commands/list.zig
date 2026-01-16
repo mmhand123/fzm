@@ -2,13 +2,20 @@
 
 const std = @import("std");
 const versions = @import("../versions.zig");
+const state = @import("../state.zig");
+
+const State = state.State;
 
 /// Soft teal color for output.
 const teal = "\x1b[38;2;94;186;187m";
+const dark_blue = "\x1b[34m";
+const light_blue = "\x1b[38;5;75m ";
 const reset = "\x1b[0m";
 
-pub fn list(allocator: std.mem.Allocator) !void {
+pub fn list(allocator: std.mem.Allocator, app_state: *State) !void {
     const installed = try versions.listInstalledVersions(allocator);
+    const in_use = app_state.in_use.?;
+
     defer {
         for (installed) |v| allocator.free(v);
         allocator.free(installed);
@@ -31,6 +38,10 @@ pub fn list(allocator: std.mem.Allocator) !void {
     }.lessThan);
 
     for (installed) |version| {
-        try writer.interface.print("{s}{s}{s}\n\n", .{ teal, version, reset });
+        if (std.mem.eql(u8, version, in_use)) {
+            try writer.interface.print("*{s}{s}{s}\n", .{ light_blue, version, reset });
+            continue;
+        }
+        try writer.interface.print("{s}{s}{s}\n", .{ dark_blue, version, reset });
     }
 }
