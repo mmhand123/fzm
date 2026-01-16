@@ -34,7 +34,6 @@ pub const Progress = struct {
         defer writer.interface.flush() catch {};
 
         writer.interface.print(fmt ++ "\n", args) catch return;
-        writer.interface.flush() catch {};
     }
 
     /// Update download progress (in-place on TTY, throttled lines on non-TTY).
