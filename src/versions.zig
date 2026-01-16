@@ -290,3 +290,45 @@ test "listInstalledVersionsFromDir ignores files" {
     try testing.expectEqual(1, result.len);
     try testing.expectEqualStrings("0.13.0", result[0]);
 }
+
+test "findBestMatchingVersionFromDir matches higher patch version" {
+    var tmp_dir = testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+
+    // Installed 0.15.2, target is 0.15.0 - should match since 0.15.2 >= 0.15.0
+    try tmp_dir.dir.makeDir("0.15.2");
+
+    const allocator = testing.allocator;
+    const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(tmp_path);
+
+    const result = try findBestMatchingVersionFromDir(
+        allocator,
+        tmp_path,
+        std.SemanticVersion{ .major = 0, .minor = 15, .patch = 0 },
+    );
+    defer if (result) |r| allocator.free(r);
+
+    try testing.expect(result != null);
+    try testing.expectEqualStrings("0.15.2", result.?);
+}
+
+test "findBestMatchingVersionFromDir rejects lower patch version" {
+    var tmp_dir = testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+
+    // Installed 0.15.0, target is 0.15.2 - should NOT match since 0.15.0 < 0.15.2
+    try tmp_dir.dir.makeDir("0.15.0");
+
+    const allocator = testing.allocator;
+    const tmp_path = try tmp_dir.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(tmp_path);
+
+    const result = try findBestMatchingVersionFromDir(
+        allocator,
+        tmp_path,
+        std.SemanticVersion{ .major = 0, .minor = 15, .patch = 2 },
+    );
+
+    try testing.expect(result == null);
+}
