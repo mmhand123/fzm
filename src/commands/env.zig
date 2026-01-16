@@ -4,6 +4,7 @@
 
 const std = @import("std");
 const errors = @import("../errors.zig");
+const tmp = @import("../tmp.zig");
 const log = std.log.scoped(.env);
 
 const Shell = enum {
@@ -16,6 +17,7 @@ const EnvError = error{
 };
 
 pub fn env(allocator: std.mem.Allocator) !void {
+    // Note: avoid log.debug here since output is meant to be eval'd by the shell
     const shell_env = std.process.getEnvVarOwned(allocator, "SHELL") catch {
         try errors.prettyError("SHELL environment variable not set\n", .{});
         return;
@@ -27,19 +29,29 @@ pub fn env(allocator: std.mem.Allocator) !void {
         return EnvError.UnsupportedShell;
     };
 
-    // Note: avoid log.debug here since output is meant to be eval'd by the shell
+    const tmp_dir = try tmp.makeTempDir(allocator);
+    // TODO: symlink to the correct version of zig
+    const path_update = std.fmt.allocPrint(allocator, "EXPORT PATH={s}:$PATH\n", .{tmp_dir});
+
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    const stdout = &stdout_writer.interface;
+
+    try stdout.writeAll(path_update);
 
     switch (shell) {
-        .bash => try setupBash(allocator),
-        .zsh => try setupZsh(allocator),
+        .bash => try autoloadBash(allocator, stdout),
+        .zsh => try autoloadZsh(allocator, stdout),
     }
+
+    try stdout.flush();
 }
 
-fn setupBash(_: std.mem.Allocator) !void {
+fn autoloadBash(_: std.mem.Allocator, _: *std.io.Writer) !void {
     // TODO
 }
 
-fn setupZsh(_: std.mem.Allocator) !void {
+fn autoloadZsh(_: std.mem.Allocator, writer: *std.io.Writer) !void {
     const script =
         \\fzm_autoload() {
         \\    if [[ -f build.zig.zon ]]; then
@@ -52,11 +64,7 @@ fn setupZsh(_: std.mem.Allocator) !void {
         \\
         \\fzm_autoload
     ;
-    var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
-    const stdout = &stdout_writer.interface;
 
-    try stdout.writeAll(script);
-    try stdout.writeAll("\n");
-    try stdout.flush();
+    try writer.writeAll(script);
+    try writer.writeAll("\n");
 }
