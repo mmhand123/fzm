@@ -14,7 +14,7 @@ const reset = "\x1b[0m";
 
 pub fn list(allocator: std.mem.Allocator, app_state: *State) !void {
     const installed = try versions.listInstalledVersions(allocator);
-    const in_use = app_state.in_use.?;
+    const in_use = app_state.in_use orelse "none";
 
     defer {
         for (installed) |v| allocator.free(v);
