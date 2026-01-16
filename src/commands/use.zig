@@ -32,6 +32,7 @@ fn updateToVersion(allocator: std.mem.Allocator, app_state: *state.State, target
     try app_state.setInUse(target_version);
     try app_state.save();
 
+    // TODO: we should not keep looking this up
     if (std.posix.getenv("FZM_TMP_PATH")) |tmp_path| {
         log.debug("updating symlink in {s}", .{tmp_path});
         try linking.updateSymlink(allocator, tmp_path, target_version);
@@ -61,6 +62,7 @@ fn autoswitchVersion(allocator: std.mem.Allocator) !void {
 
     log.debug("minimum_zig_version: {s}, best match: {s}", .{ min_version, best_match });
 
+    // TODO: we should not keep looking this up
     if (std.posix.getenv("FZM_TMP_PATH")) |tmp_path| {
         log.debug("updating symlink in {s}", .{tmp_path});
         try linking.updateSymlink(allocator, tmp_path, best_match);

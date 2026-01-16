@@ -18,12 +18,9 @@ pub fn createZigSymlink(allocator: std.mem.Allocator, version_in_use: []const u8
     };
 }
 
-pub fn updateSymlink(allocator: std.mem.Allocator, tmp_path: []const u8, target_version: []const u8) !void {
+pub fn updateSymlink(allocator: std.mem.Allocator, tmp_path: []const u8, target_version: ?[]const u8) !void {
     const versions_dir = try versions.getVersionsDir(allocator);
     defer allocator.free(versions_dir);
-
-    const zig_path = try std.fs.path.join(allocator, &.{ versions_dir, target_version, "zig" });
-    defer allocator.free(zig_path);
 
     const symlink_path = try std.fs.path.join(allocator, &.{ tmp_path, "zig" });
     defer allocator.free(symlink_path);
@@ -33,7 +30,12 @@ pub fn updateSymlink(allocator: std.mem.Allocator, tmp_path: []const u8, target_
         else => return err,
     };
 
-    std.fs.symLinkAbsolute(zig_path, symlink_path, .{}) catch |err| {
-        log.warn("failed to update symlink: {}", .{err});
-    };
+    if (target_version) |version| {
+        const zig_path = try std.fs.path.join(allocator, &.{ versions_dir, version, "zig" });
+        defer allocator.free(zig_path);
+
+        std.fs.symLinkAbsolute(zig_path, symlink_path, .{}) catch |err| {
+            log.warn("failed to update symlink: {}", .{err});
+        };
+    }
 }

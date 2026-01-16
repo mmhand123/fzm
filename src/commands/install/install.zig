@@ -13,6 +13,7 @@ const versions = @import("../../versions.zig");
 const version = @import("version.zig");
 const installErrors = @import("install_errors.zig");
 const tarball = @import("tarball.zig");
+const linking = @import("../../linking.zig");
 const http = std.http;
 const Uri = std.Uri;
 
@@ -102,6 +103,44 @@ pub fn install(allocator: std.mem.Allocator, app_state: *state.State, target_ver
             return;
         };
         log.debug("set {s} as the in-use version", .{target_version});
+    }
+}
+
+pub fn uninstall(allocator: std.mem.Allocator, app_state: *state.State, target_version: []const u8) !void {
+    var progress = Progress.init(std.fs.File.stderr());
+
+    progress.status("uninstalling zig {s}", .{target_version});
+
+    const versions_dir = try versions.getVersionsDir(allocator);
+    const in_use_version = app_state.in_use orelse "none";
+    const installed = versions.getInstalledVersion(allocator, target_version) catch {
+        try errors.prettyError("zig version '{s}' is not installed\n", .{target_version});
+        return error.UserError;
+    };
+
+    defer allocator.free(installed.?);
+
+    if (installed) |installed_version| {
+        if (std.mem.eql(u8, installed_version, in_use_version)) {
+            // TODO: should we try to just pick another version?
+            try app_state.setInUse("");
+            try app_state.save();
+
+            // TODO: we should not keep looking this up
+            if (std.posix.getenv("FZM_TMP_PATH")) |tmp_path| {
+                log.debug("removing symlink in {s}", .{tmp_path});
+                try linking.updateSymlink(allocator, tmp_path, null);
+            }
+        }
+
+        const installed_dir = std.fs.path.join(allocator, &.{ versions_dir, installed.? }) catch {
+            return errors.prettyError("failed to create version path\n", .{});
+        };
+
+        log.debug("deleting installed folder {s}", .{installed_dir});
+        try std.fs.deleteTreeAbsolute(installed_dir);
+
+        progress.status("uninstalled zig {s}", .{installed.?});
     }
 }
 

@@ -67,6 +67,16 @@ pub fn main() !void {
         .required = false,
     });
 
+    _ = app.addCommand(.{
+        .name = "uninstall",
+        .description = "Uninstall a Zig version",
+        .action = uninstallAction,
+    }).addArgument(.{
+        .name = "version",
+        .description = "Version to uninstall",
+        .required = true,
+    });
+
     app.run() catch |err| switch (err) {
         error.UserError => std.process.exit(1),
         else => return err,
@@ -77,6 +87,12 @@ fn installAction(ctx: cli.Context) !void {
     const version = ctx.arg("version").?;
     const app_state = ctx.getUserData(state.State).?;
     try installation.install(ctx.allocator, app_state, version);
+}
+
+fn uninstallAction(ctx: cli.Context) !void {
+    const version = ctx.arg("version").?;
+    const app_state = ctx.getUserData(state.State).?;
+    try installation.uninstall(ctx.allocator, app_state, version);
 }
 
 fn listAction(ctx: cli.Context) !void {
