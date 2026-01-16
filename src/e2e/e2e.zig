@@ -8,4 +8,5 @@
 test {
     _ = @import("list_test.zig");
     _ = @import("install_test.zig");
+    _ = @import("uninstall_test.zig");
 }

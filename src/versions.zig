@@ -28,6 +28,7 @@ fn getInstalledVersionFromDir(allocator: std.mem.Allocator, versions_dir: []cons
     defer allocator.free(version_file_path);
 
     const file = std.fs.openFileAbsolute(version_file_path, .{}) catch |err| switch (err) {
+        // TODO: I hate this, this should not be optional
         error.FileNotFound => return null,
         else => return err,
     };

@@ -113,35 +113,36 @@ pub fn uninstall(allocator: std.mem.Allocator, app_state: *state.State, target_v
 
     const versions_dir = try versions.getVersionsDir(allocator);
     const in_use_version = app_state.in_use orelse "none";
-    const installed = versions.getInstalledVersion(allocator, target_version) catch {
+    const installed_version = versions.getInstalledVersion(allocator, target_version) catch {
+        try errors.prettyError("zig version '{s}' is not installed\n", .{target_version});
+        return error.UserError;
+    } orelse {
         try errors.prettyError("zig version '{s}' is not installed\n", .{target_version});
         return error.UserError;
     };
 
-    defer allocator.free(installed.?);
+    defer allocator.free(installed_version);
 
-    if (installed) |installed_version| {
-        if (std.mem.eql(u8, installed_version, in_use_version)) {
-            // TODO: should we try to just pick another version?
-            try app_state.setInUse("");
-            try app_state.save();
+    if (std.mem.eql(u8, installed_version, in_use_version)) {
+        // TODO: should we try to just pick another version?
+        try app_state.setInUse("");
+        try app_state.save();
 
-            // TODO: we should not keep looking this up
-            if (std.posix.getenv("FZM_TMP_PATH")) |tmp_path| {
-                log.debug("removing symlink in {s}", .{tmp_path});
-                try linking.updateSymlink(allocator, tmp_path, null);
-            }
+        // TODO: we should not keep looking this up
+        if (std.posix.getenv("FZM_TMP_PATH")) |tmp_path| {
+            log.debug("removing symlink in {s}", .{tmp_path});
+            try linking.updateSymlink(allocator, tmp_path, null);
         }
-
-        const installed_dir = std.fs.path.join(allocator, &.{ versions_dir, installed.? }) catch {
-            return errors.prettyError("failed to create version path\n", .{});
-        };
-
-        log.debug("deleting installed folder {s}", .{installed_dir});
-        try std.fs.deleteTreeAbsolute(installed_dir);
-
-        progress.status("uninstalled zig {s}", .{installed.?});
     }
+
+    const installed_dir = std.fs.path.join(allocator, &.{ versions_dir, installed_version }) catch {
+        return errors.prettyError("failed to create version path\n", .{});
+    };
+
+    log.debug("deleting installed folder {s}", .{installed_dir});
+    try std.fs.deleteTreeAbsolute(installed_dir);
+
+    progress.status("uninstalled zig {s}", .{installed_version});
 }
 
 test {
