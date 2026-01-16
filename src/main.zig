@@ -7,7 +7,7 @@ const logging = @import("logging.zig");
 const env_cmd = @import("commands/env.zig");
 const state = @import("state.zig");
 
-const VERSION = "0.0.1";
+const VERSION = "0.1.0";
 
 pub const std_options: std.Options = .{
     .log_level = .debug,
