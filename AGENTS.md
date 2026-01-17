@@ -1,5 +1,7 @@
 # AGENTS.md
 
+Design for testability using "functional core, imperative shell": keep pure business logic separate from code that does IO.
+
 ## Zig Development
 
 Always use `zigdoc` to discover APIs for the Zig standard library and any third-party dependencies.
