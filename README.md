@@ -29,13 +29,13 @@ eval "$(fzm env)"
 ### Installing a version of Zig
 
 ```sh
-fzm install 0.15.2 # or master, 0.15.0, etc.
+fzm install 0.15.2 # or master, 0.14.0, etc.
 ```
 
 ### Uninstalling a version of Zig
 
 ```sh
-fzm uninstall 0.15.2 # or master, 0.15.0, etc.
+fzm uninstall 0.15.2 # or master, 0.14.0, etc.
 ```
 
 ### Listing installed versions
@@ -47,7 +47,7 @@ fzm list # or ls
 ### Manually switching versions
 
 ```sh
-fzm use 0.15.2 # or master, 0.15.0, etc.
+fzm use 0.15.2 # or master, 0.14.0, etc.
 ```
 
 ### Automatically switching versions
