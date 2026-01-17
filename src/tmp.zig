@@ -10,7 +10,7 @@ pub fn makeTempDir(allocator: std.mem.Allocator) !struct { dir: std.fs.Dir, path
     const timestamp: u64 = @intCast(std.time.timestamp());
     const pid = switch (builtin.os.tag) {
         .linux => std.os.linux.getpid(),
-        .macos => std.os.macos.getpid(),
+        .macos, .ios, .tvos, .watchos, .visionos => std.c.getpid(),
         .windows => std.os.windows.GetCurrentProcessId(),
         else => 0,
     };
